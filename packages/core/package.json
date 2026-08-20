@@ -12,7 +12,9 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
   },
@@ -28,5 +30,18 @@
     "@types/node": "^22.10.0",
     "typescript": "^5.7.2",
     "vitest": "^3.0.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Chenmo0414/openanalyst.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/Chenmo0414/openanalyst",
+  "bugs": {
+    "url": "https://github.com/Chenmo0414/openanalyst/issues"
+  },
+  "author": "Chenmo0414",
+  "publishConfig": {
+    "access": "public"
   }
 }

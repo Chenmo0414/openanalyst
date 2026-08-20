@@ -4,11 +4,25 @@
   "description": "MCP server for OpenAnalyst: attach CSV/Parquet/JSON/XLSX, auto-profile, run read-only SQL, and render charts — for Claude Code, Codex, Cursor and any MCP client.",
   "license": "MIT",
   "type": "module",
-  "bin": { "openanalyst-mcp": "./dist/index.js" },
+  "bin": {
+    "openanalyst-mcp": "./dist/index.js"
+  },
   "main": "./dist/index.js",
-  "files": ["dist"],
-  "keywords": ["mcp", "modelcontextprotocol", "data-analysis", "duckdb", "vega-lite", "claude-code", "deepseek-harness"],
-  "engines": { "node": "^22.19.0 || >=24.0.0" },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "mcp",
+    "modelcontextprotocol",
+    "data-analysis",
+    "duckdb",
+    "vega-lite",
+    "claude-code",
+    "deepseek-harness"
+  ],
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -25,5 +39,18 @@
     "@types/node": "^22.10.0",
     "typescript": "^5.7.2",
     "vitest": "^3.0.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Chenmo0414/openanalyst.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://github.com/Chenmo0414/openanalyst",
+  "bugs": {
+    "url": "https://github.com/Chenmo0414/openanalyst/issues"
+  },
+  "author": "Chenmo0414",
+  "publishConfig": {
+    "access": "public"
   }
 }
