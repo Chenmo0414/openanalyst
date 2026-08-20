@@ -1,0 +1,11 @@
+order_id,region,product,units,revenue,order_date,rep
+1001,East,Widget,12,1440.00,2026-01-05,Ana
+1002,West,Gadget,3,899.50,2026-01-07,Bo
+1003,East,Widget,25,3000.00,2026-01-09,Ana
+1004,North,Doohickey,7,455.25,2026-01-11,Cy
+1005,West,Widget,,120.00,2026-01-12,Bo
+1006,East,Gadget,18,5390.00,2026-02-01,Dee
+1007,South,Widget,9,1080.00,2026-02-03,Ana
+1008,North,Gadget,41,12299.99,2026-02-14,Cy
+1009,West,Doohickey,2,130.50,2026-02-20,Bo
+1010,East,Widget,15,1800.00,2026-03-02,Dee

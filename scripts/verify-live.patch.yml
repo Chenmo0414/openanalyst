@@ -1,0 +1,8 @@
+# Overlay for live verification against the scripted mock LLM.
+#
+# session-title-llm fires its own fire-and-forget model call on the first
+# prompt; against a sequential scripted server that call would consume the
+# data_attach entry and shift every later response one step off. The repo's
+# own web e2e scaffold disables exactly this row for exactly this reason.
+- id: session-title-llm
+  disabled: true

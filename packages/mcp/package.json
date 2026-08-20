@@ -1,0 +1,29 @@
+{
+  "name": "openanalyst-mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server for OpenAnalyst: attach CSV/Parquet/JSON/XLSX, auto-profile, run read-only SQL, and render charts — for Claude Code, Codex, Cursor and any MCP client.",
+  "license": "MIT",
+  "type": "module",
+  "bin": { "openanalyst-mcp": "./dist/index.js" },
+  "main": "./dist/index.js",
+  "files": ["dist"],
+  "keywords": ["mcp", "modelcontextprotocol", "data-analysis", "duckdb", "vega-lite", "claude-code", "deepseek-harness"],
+  "engines": { "node": "^22.19.0 || >=24.0.0" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@openanalyst/core": "workspace:^",
+    "vega": "^6.4.0",
+    "vega-lite": "^6.4.3",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2",
+    "vitest": "^3.0.5"
+  }
+}

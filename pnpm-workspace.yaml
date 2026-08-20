@@ -1,0 +1,18 @@
+packages:
+  - 'packages/*'
+
+# esbuild ships a platform binary through its install script; the client
+# bundler needs it.
+allowBuilds:
+  '@deepseek-ai/dsh-subprocess-local': true
+  '@google/genai': true
+  esbuild: true
+  koffi: true
+  node-pty: true
+  protobufjs: true
+
+# The harness is in developer preview and only its release-candidate line
+# carries the client packages this plugin builds against, so the default
+# quarantine on freshly published versions has to be lifted here. Revisit once
+# dsh reaches a stable release.
+minimumReleaseAge: 0
