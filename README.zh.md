@@ -45,6 +45,12 @@ data_sources    →  当前已接入的数据集
 在 dsh 的 Code Mode（PTC 模式）下，全部工具也可以在 `run_code` 程序里以
 `await tools.data_*(args)` 链式调用，一段程序内完成 接入 → 画像 → 查询 → 出图。
 
+**工作台**——会话头部的浮层面板：本会话的数据源、可点击定位的图表库、报告存档：
+
+<p align="center">
+  <img src="docs/assets/workbench-panel.png" alt="OpenAnalyst 工作台面板：数据源、带定位按钮的图表库、报告存档" width="100%" />
+</p>
+
 更多对话内图型（同一主题，同样从真实会话导出）：
 
 <p align="center">
@@ -146,7 +152,7 @@ pnpm -r run test
 | **M1** | Core + dsh 插件，对话内出图 — 已完成并实机验证 |
 | **M2** | MCP server：同样能力进入 Claude Code / Codex / Cursor — 已完成 |
 | **M3** | HTML 报告导出（可打印 PDF）、PostgreSQL / MySQL / SQLite、按 agent 隔离 — 已完成 |
-| **M4** | 工作台面板：数据源、图表库、报告存档 |
+| **M4** | 工作台面板：数据源、可点击定位的图表库、报告存档 — 已完成并实机验证 |
 
 ## 许可证
 

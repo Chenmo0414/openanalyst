@@ -24,13 +24,16 @@ import type {
   ConversationNodeDefinition,
 } from '@deepseek-ai/dsh-client-runtime/client'
 import type { ChatNodeViewProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import type { ChartEventData } from '../events.ts'
+import type { AttachEventData, ChartEventData, ReportEventData } from '../events.ts'
+import { WorkbenchHeaderAction } from './workbench.tsx'
 
 const NODE_KIND = 'openanalyst-chart'
 
 declare module '@deepseek-ai/dsh-client-ui-conversation/client' {
   interface ChatNodeDataMap {
     'openanalyst-chart': ChartEventData
+    'openanalyst-attach': AttachEventData
+    'openanalyst-report': ReportEventData
   }
 }
 
@@ -142,7 +145,12 @@ export function ChartNodeView({ node }: ChatNodeViewProps<'openanalyst-chart'>):
 
   return createElement(
     'figure',
-    { className: 'openanalyst-chart', style: { margin: '0.5rem 0' } },
+    {
+      className: 'openanalyst-chart',
+      // Scroll anchor for the workbench gallery; the id is the chart event's seq.
+      'data-oa-chart': node.id,
+      style: { margin: '0.5rem 0' },
+    },
     createElement('div', { ref: host }),
     createElement(
       'figcaption',
@@ -152,12 +160,79 @@ export function ChartNodeView({ node }: ChatNodeViewProps<'openanalyst-chart'>):
   )
 }
 
+/**
+ * A data-only projection of one plugin event: its view renders an invisible
+ * marker element carrying the payload as JSON. The workbench collects these
+ * markers straight from the DOM — self-contained, with no dependency on the
+ * snapshot's internals (`snapshot.chat` is guarded by the chat render
+ * context and throws when read from a header slot).
+ */
+function headlessDefinition<Data>(
+  kind: 'openanalyst-attach' | 'openanalyst-report',
+  eventType: string,
+): ConversationNodeDefinition<Data> {
+  return {
+    kind,
+    target: 'chat',
+    match: (event) => (event.type === eventType ? { id: String(event.seq), role: 'start' } : null),
+    start: (_context, match) => match.event.data as Data,
+    update: (context) => context.state,
+    publication: () => 'immediate',
+    buildViewNode: (context) => {
+      const state = context.state
+      if (state === undefined) return null
+      return {
+        key: context.key,
+        kind,
+        id: context.id,
+        target: 'chat',
+        anchorSeq: context.start?.event.seq ?? 0,
+        location: context.start?.location ?? { kind: 'unresolved' },
+        visibility: 'visible',
+        data: state,
+      }
+    },
+  } as ConversationNodeDefinition<Data>
+}
+
+/** Invisible marker node: publishes one event payload into the DOM. */
+function markerView(kind: string) {
+  return function MarkerView({ node }: { node: { id: string; data: unknown } }): ReactElement {
+    return createElement('span', {
+      hidden: true,
+      style: { display: 'none' },
+      'data-oa-kind': kind,
+      'data-oa-id': node.id,
+      'data-oa-json': JSON.stringify(node.data),
+    })
+  }
+}
+
 export const name = 'openanalyst-client'
 export const inject = ['conversationEvents', 'slots']
 
 export function apply(ctx: ClientContext): void {
   ctx.conversationEvents.register(chartDefinition)
-  ctx.slots.inject('conversation.chat.node', () =>
+  ctx.conversationEvents.register(headlessDefinition<AttachEventData>('openanalyst-attach', 'openanalyst/attach'))
+  ctx.conversationEvents.register(headlessDefinition<ReportEventData>('openanalyst-report', 'openanalyst/report'))
+  ctx.slots.inject('conversation.chat.node', () => [
     ctx.slots.register({ name: 'conversation.chat.node', key: NODE_KIND }, ChartNodeView),
+    ctx.slots.register(
+      { name: 'conversation.chat.node', key: 'openanalyst-attach' },
+      markerView('attach') as never,
+    ),
+    ctx.slots.register(
+      { name: 'conversation.chat.node', key: 'openanalyst-report' },
+      markerView('report') as never,
+    ),
+  ])
+  // The workbench button in the session header: sources, chart gallery with
+  // scroll-to-chart, and the report archive — collected from the marker DOM
+  // this plugin's own nodes render, so it depends on nothing internal.
+  ctx.slots.inject('conversation.session.header.utilities', () =>
+    ctx.slots.register(
+      { name: 'conversation.session.header.utilities', id: 'openanalyst-workbench' },
+      WorkbenchHeaderAction as never,
+    ),
   )
 }

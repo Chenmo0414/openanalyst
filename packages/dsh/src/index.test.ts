@@ -195,15 +195,16 @@ describe('per-agent isolation', () => {
 })
 
 describe('data_report', () => {
-  it('writes a self-contained HTML file', async () => {
+  it('writes a self-contained HTML file and logs an openanalyst/report event', async () => {
     const { mkdtempSync, readFileSync, rmSync } = await import('node:fs')
     const { tmpdir } = await import('node:os')
     const { join } = await import('node:path')
     const dir = mkdtempSync(join(tmpdir(), 'oa-dsh-report-'))
     try {
-      await call('data_attach', { path: SALES_CSV })
+      const appended: AppendedEvent[] = []
+      await callAs('data_attach', { path: SALES_CSV }, 'report-agent', appended)
       const out = join(dir, 'report.html')
-      const result = (await call('data_report', { path: out, title: 'dsh report' })) as {
+      const result = (await callAs('data_report', { path: out, title: 'dsh report' }, 'report-agent', appended)) as {
         path: string
         chartCount: number
       }
@@ -211,6 +212,13 @@ describe('data_report', () => {
       const html = readFileSync(result.path, 'utf-8')
       expect(html).toContain('dsh report')
       expect(html).toContain('<svg')
+
+      const event = appended.find((entry) => entry.type === 'openanalyst/report')
+      expect(event).toBeDefined()
+      const data = event?.data as { path: string; title: string; chartCount: number }
+      expect(data.title).toBe('dsh report')
+      expect(data.path).toBe(result.path)
+      expect(JSON.parse(JSON.stringify(data))).toEqual(data)
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

@@ -53,6 +53,13 @@ Every tool is also reachable from Code Mode as `await tools.data_*(args)`, so
 the agent can chain the whole analysis inside one program instead of spending a
 round trip per step.
 
+The **workbench** — a session-header panel listing this session's data
+sources, a chart gallery with click-to-scroll, and generated reports:
+
+<p align="center">
+  <img src="docs/assets/workbench-panel.png" alt="The OpenAnalyst workbench panel open over a dsh conversation: data sources, chart gallery with locate buttons, and the report archive" width="100%" />
+</p>
+
 More in-conversation chart kinds (same theme, exported from a live session):
 
 <p align="center">
@@ -172,7 +179,7 @@ harness plugin:
 | **M1** | Core + dsh plugin, charts in the conversation — done, live-verified |
 | **M2** | MCP server: same capability in Claude Code / Codex / Cursor — done ← *you are here* |
 | **M3** | HTML report export (prints to PDF), PostgreSQL / MySQL / SQLite, per-agent isolation — done |
-| **M4** | Workbench panel: data sources, chart gallery, saved reports |
+| **M4** | Workbench panel: data sources, chart gallery with click-to-scroll, report archive — done, live-verified |
 
 ## License
 

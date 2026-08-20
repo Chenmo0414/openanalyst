@@ -31,18 +31,19 @@ try {
     () => document.body.innerText.includes('heatmap'),
     { timeout: 30_000 },
   )
-  await page.evaluate(() => {
+  const wanted = process.env.OA_SHOOT_SESSION ?? 'Analyze the sales CSV'
+  await page.evaluate((title) => {
     // The sidebar row is not a <button>; click the smallest element whose own
     // text carries the session title.
     const all = [...document.querySelectorAll('a, [role="button"], li, div, span')]
     const hits = all.filter((el) => {
       const text = (el.textContent ?? '').trim()
-      return text.startsWith('Analyze the sales CSV') && text.length < 80
+      return text.startsWith(title) && text.length < 80
     })
     hits.sort((left, right) => (left.textContent?.length ?? 0) - (right.textContent?.length ?? 0))
     const target = hits[0]
     if (target instanceof HTMLElement) target.click()
-  })
+  }, wanted)
 
   // Wait for at least two chart canvases with real dimensions.
   await page.waitForFunction(
@@ -60,6 +61,17 @@ try {
     window.scrollBy(0, -100)
   })
   await new Promise((resolve) => setTimeout(resolve, 1200))
+
+  // Optionally open the workbench panel so the capture shows it.
+  if (process.env.OA_SHOOT_WORKBENCH === '1') {
+    await page.evaluate(() => {
+      const btn = [...document.querySelectorAll("button")].find(
+        (b) => b.getAttribute("title") === "OpenAnalyst workbench",
+      )
+      if (btn instanceof HTMLElement) btn.click()
+    })
+    await new Promise((resolve) => setTimeout(resolve, 900))
+  }
 
   await page.screenshot({ path: OUT })
   console.log('saved', OUT)

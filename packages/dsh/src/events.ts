@@ -14,7 +14,7 @@ import { KNOWN_SESSION_EVENT_TYPES } from '@deepseek-ai/dsh-session'
 import type { ChartKind, JsonValue } from '@openanalyst/core'
 
 /** Every event type this plugin appends to session logs. */
-export const PLUGIN_EVENT_TYPES = ['openanalyst/chart'] as const
+export const PLUGIN_EVENT_TYPES = ['openanalyst/attach', 'openanalyst/chart', 'openanalyst/report'] as const
 
 /**
  * Register this plugin's event vocabulary with the persistence read path.
@@ -63,6 +63,24 @@ export interface ChartEventData {
   readonly vegaLite: JsonValue
 }
 
+/** Durable record of one attached dataset. */
+export interface AttachEventData {
+  readonly alias: string
+  /** File path, connection string (redacted), or `<inline>`. */
+  readonly origin: string
+  readonly rowCount: number
+  readonly columns: readonly { readonly name: string; readonly sqlType: string }[]
+}
+
+/** Durable record of one generated HTML report. */
+export interface ReportEventData {
+  /** Absolute path the report was written to. */
+  readonly path: string
+  readonly title: string
+  readonly sources: readonly string[]
+  readonly chartCount: number
+}
+
 declare module '@deepseek-ai/dsh-session/types' {
   interface SessionEventMap {
     /**
@@ -70,6 +88,20 @@ declare module '@deepseek-ai/dsh-session/types' {
      * @mode emit
      * @param data - the complete chart, including its inlined data.
      */
+    /**
+     * Records one attached dataset, so the workbench panel can list this
+     * session's sources without a host round trip.
+     * @mode emit
+     * @param data - the dataset's identity and shape.
+     */
+    'openanalyst/attach': AttachEventData
     'openanalyst/chart': ChartEventData
+    /**
+     * Records one generated HTML report, so session surfaces (the workbench
+     * panel) can list past reports without a host round trip.
+     * @mode emit
+     * @param data - where the report landed and what it contains.
+     */
+    'openanalyst/report': ReportEventData
   }
 }

@@ -196,11 +196,19 @@ export function apply(ctx: Context): void {
           args.path,
           args.alias === undefined ? { signal: exec.signal } : { alias: args.alias, signal: exec.signal },
         )
+        const columns = handle.columns.map((column) => ({ name: column.name, sqlType: column.sqlType }))
+        // Durable breadcrumb for the workbench's data-source list.
+        exec.agent?.session.append('openanalyst/attach', {
+          alias: handle.alias,
+          origin: handle.origin,
+          rowCount: handle.rowCount,
+          columns,
+        })
         return {
           alias: handle.alias,
           origin: handle.origin,
           rowCount: handle.rowCount,
-          columns: handle.columns.map((column) => ({ name: column.name, sqlType: column.sqlType })),
+          columns,
         }
       },
     }),
@@ -663,6 +671,14 @@ export function apply(ctx: Context): void {
         const target = resolvePath(args.path)
         await mkdir(resolvePath(target, '..'), { recursive: true })
         await writeFile(target, report.html, 'utf-8')
+        // Durable breadcrumb: the workbench panel folds these events into the
+        // session's report archive, so listing needs no host round trip.
+        exec.agent?.session.append('openanalyst/report', {
+          path: target,
+          title: report.title,
+          sources: [...report.sources],
+          chartCount: report.chartCount,
+        })
         return {
           path: target,
           title: report.title,

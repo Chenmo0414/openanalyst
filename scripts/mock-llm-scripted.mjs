@@ -47,6 +47,11 @@ const SCRIPT = [
     args: { source: 'sales_2026', kind: 'bar', x: 'region', y: 'revenue', color: 'product', stack: 'grouped' },
   },
   {
+    kind: 'tool',
+    name: 'data_report',
+    args: { path: 'D:/Code/openanalyst/examples/wb-report.html', title: 'Workbench demo report' },
+  },
+  {
     kind: 'text',
     text:
       'Attached sales-2026.csv (482 rows), profiled it, and rendered three charts: a ' +
