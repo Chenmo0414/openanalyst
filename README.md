@@ -20,10 +20,11 @@ from the session — see [the verification record](docs/VERIFICATION.md)):
   <img src="docs/assets/chart-line-trend.png" alt="Line chart: revenue trend over order date, rendered inside a dsh conversation" width="49%" />
 </p>
 
-> Status: **M1 complete — verified live inside `dsh web 0.1.0-rc.8`**: the full
-> attach → profile → query → chart chain executed in a real session and both
-> charts rendered as conversation nodes ([verification record](docs/VERIFICATION.md),
-> with exported screenshots). See [Known limitations](#known-limitations).
+> Status: **M1 + M2 complete.** The dsh plugin is live-verified inside
+> `dsh web 0.1.0-rc.8` — the full attach → profile → query → chart chain ran in
+> a real session and both charts rendered as conversation nodes
+> ([verification record](docs/VERIFICATION.md)). The MCP server passes
+> protocol-level tests plus a stdio smoke. See [Known limitations](#known-limitations).
 
 ---
 
