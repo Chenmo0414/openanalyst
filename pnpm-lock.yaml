@@ -46,6 +46,9 @@ importers:
       '@openanalyst/core':
         specifier: workspace:^
         version: link:../core
+      '@openanalyst/report':
+        specifier: workspace:^
+        version: link:../report
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: ^4.0.1
@@ -92,15 +95,34 @@ importers:
       '@openanalyst/core':
         specifier: workspace:^
         version: link:../core
+      '@openanalyst/report':
+        specifier: workspace:^
+        version: link:../report
+      zod:
+        specifier: ^3.24.0
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.5
+        version: 3.2.7(@types/node@22.20.1)(yaml@2.9.0)
+
+  packages/report:
+    dependencies:
+      '@openanalyst/core':
+        specifier: workspace:^
+        version: link:../core
       vega:
         specifier: ^6.4.0
         version: 6.4.0
       vega-lite:
         specifier: ^6.4.3
         version: 6.4.3(vega@6.4.0)
-      zod:
-        specifier: ^3.24.0
-        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: ^22.10.0

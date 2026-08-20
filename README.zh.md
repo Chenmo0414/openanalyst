@@ -5,7 +5,7 @@
 
 <p align="center">
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat" /></a>
-  <img alt="tests" src="https://img.shields.io/badge/tests-55%20passing-brightgreen?style=flat" />
+  <img alt="tests" src="https://img.shields.io/badge/tests-74%20passing-brightgreen?style=flat" />
   <img alt="runtime" src="https://img.shields.io/badge/DuckDB-in--process-fff100?style=flat" />
   <img alt="charts" src="https://img.shields.io/badge/charts-Vega--Lite-4c78a8?style=flat" />
 </p>
@@ -24,14 +24,16 @@
 ## 它能做什么
 
 ```
-data_attach   →  把 CSV / Parquet / JSON / XLSX 文件注册为可查询的表
-data_profile  →  类型、缺失值、精确基数、离群点、数据质量问题、图表建议
-data_query    →  一条只读 SQL（DuckDB 方言），结果为无损 JSON
-data_chart    →  在对话里画一张 Vega-Lite 图（dsh）/ 渲染为 SVG（MCP）
-data_sources  →  当前已接入的数据集
+data_attach     →  把 CSV / Parquet / JSON / XLSX 文件注册为可查询的表
+data_attach_db  →  只读接入 PostgreSQL / MySQL / SQLite 并列出其表
+data_profile    →  类型、缺失值、精确基数、离群点、数据质量问题、图表建议
+data_query      →  一条只读 SQL（DuckDB 方言），结果为无损 JSON
+data_chart      →  在对话里画一张 Vega-Lite 图（dsh）/ 渲染为 SVG（MCP）
+data_report     →  自包含 HTML 报告（画像 + 内嵌 SVG 图表），浏览器可直接打印为 PDF
+data_sources    →  当前已接入的数据集
 ```
 
-同一个引擎，五个同名工具，服务两类宿主：
+同一个引擎，七个同名工具，服务两类宿主：
 
 | 宿主 | 包名 | 图表交付方式 |
 |---|---|---|
@@ -77,10 +79,11 @@ Vega-Lite spec 恰好就是可逐字节重放的一段纯 JSON。选 Vega-Lite �
 重放规则，而不是因为它流行。
 
 ```
-@openanalyst/core            引擎、画像、图表 spec        （宿主无关）
-  ├── openanalyst            dsh 宿主半边：5 个工具 + 图表事件
+@openanalyst/core            引擎、画像、数据库连接、图表 spec   （宿主无关）
+  ├── @openanalyst/report    Vega-Lite → SVG（纯 JS）+ 自包含 HTML 报告
+  ├── openanalyst            dsh 宿主半边：7 个工具 + 图表事件
   │     └── ./client         dsh 浏览器半边：conversation node + Vega canvas
-  └── openanalyst-mcp-server stdio MCP server：同样 5 个工具，图表输出 SVG
+  └── openanalyst-mcp-server stdio MCP server：同样 7 个工具，图表输出 SVG
 ```
 
 ## 开发
@@ -91,9 +94,10 @@ pnpm -r run build
 pnpm -r run test
 ```
 
-55 个测试：core 37 个（SQL 安全策略、JSON 转换、精确基数画像、图表），
-dsh 插件 11 个（端到端驱动真实工具与 DuckDB），MCP 7 个（走 SDK 内存传输的
-协议级往返，另有 stdio 进程冒烟脚本）。针对运行中 `dsh web` 的实机验证脚本在
+74 个测试：core 46 个（SQL 安全策略、JSON 转换、精确基数画像、图表，以及
+无 Docker 环境自动跳过的 PostgreSQL/MySQL 实连测试），report 5 个，dsh 插件
+14 个（端到端驱动真实工具与 DuckDB，含按 agent 隔离），MCP 9 个（走 SDK 内存
+传输的协议级往返，另有 stdio 进程冒烟脚本）。针对运行中 `dsh web` 的实机验证脚本在
 `scripts/mock-llm-scripted.mjs` + `scripts/verify-live.patch.yml`——见
 [docs/VERIFICATION.md](docs/VERIFICATION.md)。
 
@@ -102,8 +106,9 @@ dsh 插件 11 个（端到端驱动真实工具与 DuckDB），MCP 7 个（走 S
 - **PTC 模式（Code Mode）预设拒绝直接工具调用**——在该模式下模型需要把调用包进
   `run_code` 程序；标准模式下直接调用。已实测，记录在
   [docs/VERIFICATION.md](docs/VERIFICATION.md)。
-- **dsh 插件的引擎是激活级单例，不是按 agent 隔离**。两个会话接入同名数据集会
-  互相覆盖（MCP 是每客户端一进程，天然隔离）。按 agent 隔离排在 M3。
+- **dsh 的按 agent 引擎有上限而无生命周期跟踪**。每个 dsh 会话有独立引擎（别名
+  不再冲突），但 harness 不通知插件 agent 销毁，因此最多持有 32 个引擎、按 LRU
+  淘汰——被淘汰的会话下次调用时透明地重新 attach。
 - **dsh 客户端 bundle 约 860 kB**。Vega 被内联，因为 harness 每个插件只服务一个
   文件、没有 sibling chunk 路由；无图会话也要付这份体积。
 - **`data_attach` 接受宿主进程可读的任意路径**，尚无工作区围栏，继承 harness
@@ -130,7 +135,7 @@ dsh 插件 11 个（端到端驱动真实工具与 DuckDB），MCP 7 个（走 S
 |---|---|
 | **M1** | Core + dsh 插件，对话内出图 — 已完成并实机验证 |
 | **M2** | MCP server：同样能力进入 Claude Code / Codex / Cursor — 已完成 |
-| **M3** | HTML / PDF 报告导出、PostgreSQL 与 MySQL、按 agent 隔离 |
+| **M3** | HTML 报告导出（可打印 PDF）、PostgreSQL / MySQL / SQLite、按 agent 隔离 — 已完成 |
 | **M4** | 工作台面板：数据源、图表库、报告存档 |
 
 ## 许可证

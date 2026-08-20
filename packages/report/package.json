@@ -1,0 +1,32 @@
+{
+  "name": "@openanalyst/report",
+  "version": "0.1.0",
+  "description": "Chart rendering (Vega-Lite to SVG, pure JS) and self-contained HTML report generation for OpenAnalyst.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
+  "files": ["dist"],
+  "engines": { "node": "^22.19.0 || >=24.0.0" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@openanalyst/core": "workspace:^",
+    "vega": "^6.4.0",
+    "vega-lite": "^6.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2",
+    "vitest": "^3.0.5"
+  },
+  "repository": { "type": "git", "url": "git+https://github.com/Chenmo0414/openanalyst.git", "directory": "packages/report" },
+  "homepage": "https://github.com/Chenmo0414/openanalyst",
+  "bugs": { "url": "https://github.com/Chenmo0414/openanalyst/issues" },
+  "author": "Chenmo0414",
+  "publishConfig": { "access": "public" }
+}

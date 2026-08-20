@@ -267,6 +267,18 @@ export class AnalystEngine {
     return this.#rows(sql, signal)
   }
 
+  /**
+   * Run trusted internal DDL/utility statements (INSTALL, LOAD, ATTACH, SET).
+   *
+   * Never reachable from agent-authored SQL: `query` keeps its read-only
+   * allowlist, and this method is only called by library code such as
+   * `attachDatabase` with statements it composed itself.
+   */
+  async execInternal(sql: string): Promise<void> {
+    this.#assertOpen()
+    await this.#connection.run(sql)
+  }
+
   async close(): Promise<void> {
     if (this.#closed) return
     this.#closed = true

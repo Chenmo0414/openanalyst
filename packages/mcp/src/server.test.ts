@@ -43,10 +43,18 @@ afterAll(async () => {
 })
 
 describe('discovery', () => {
-  it('lists the five data tools with schemas and annotations', async () => {
+  it('lists the seven data tools with schemas and annotations', async () => {
     const { tools } = await client.listTools()
     const names = tools.map((tool) => tool.name).sort()
-    expect(names).toEqual(['data_attach', 'data_chart', 'data_profile', 'data_query', 'data_sources'])
+    expect(names).toEqual([
+      'data_attach',
+      'data_attach_db',
+      'data_chart',
+      'data_profile',
+      'data_query',
+      'data_report',
+      'data_sources',
+    ])
 
     const query = tools.find((tool) => tool.name === 'data_query')
     expect(query?.description).toContain('read-only')
@@ -100,6 +108,44 @@ describe('the analysis chain over the wire', () => {
     const spec = chart.structuredContent?.['vegaLite'] as Record<string, unknown>
     expect(spec['$schema']).toContain('vega-lite')
     expect(JSON.parse(JSON.stringify(spec))).toEqual(spec)
+  })
+})
+
+describe('data_attach_db and data_report', () => {
+  it('attaches a SQLite file read-only and lists its tables', async () => {
+    // Author a fixture through the core's own trusted channel (no sqlite3 CLI
+    // and no direct duckdb dependency needed).
+    const { AnalystEngine } = await import('@openanalyst/core')
+    const dbPath = join(chartDir, 'fixture.sqlite').replaceAll('\\', '/')
+    const author = await AnalystEngine.create()
+    await author.execInternal('INSTALL sqlite; LOAD sqlite')
+    await author.execInternal(`ATTACH '${dbPath}' AS w (TYPE sqlite)`)
+    await author.execInternal(
+      "CREATE TABLE w.metrics AS SELECT * FROM (VALUES (1, 2.5), (2, 3.5)) AS t(id, score)",
+    )
+    await author.execInternal('DETACH w')
+    await author.close()
+
+    const result = await call('data_attach_db', { target: dbPath, alias: 'fixture' })
+    expect(result.isError).toBeFalsy()
+    expect(result.structuredContent?.['kind']).toBe('sqlite')
+    const tables = result.structuredContent?.['tables'] as { name: string }[]
+    expect(tables.some((table) => table.name === 'metrics')).toBe(true)
+
+    const rows = await call('data_query', { sql: 'SELECT count(*) AS n FROM fixture.metrics' })
+    expect((rows.structuredContent?.['rows'] as { n: number }[])[0]?.n).toBe(2)
+  })
+
+  it('writes a self-contained HTML report', async () => {
+    await call('data_attach', { path: SALES_CSV })
+    const target = join(chartDir, 'out', 'report.html')
+    const result = await call('data_report', { path: target, title: 'Wire report' })
+    expect(result.isError).toBeFalsy()
+    expect(result.structuredContent?.['chartCount']).toBeGreaterThanOrEqual(2)
+
+    const html = readFileSync(result.structuredContent?.['path'] as string, 'utf-8')
+    expect(html).toContain('Wire report')
+    expect(html).toContain('<svg')
   })
 })
 

@@ -31,9 +31,8 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@openanalyst/core": "workspace:^",
-    "vega": "^6.4.0",
-    "vega-lite": "^6.4.3",
-    "zod": "^3.24.0"
+    "zod": "^3.24.0",
+    "@openanalyst/report": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

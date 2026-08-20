@@ -5,7 +5,7 @@ Attach a CSV, get an automatic profile, ask questions in SQL, and see real chart
 
 <p align="center">
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat" /></a>
-  <img alt="tests" src="https://img.shields.io/badge/tests-55%20passing-brightgreen?style=flat" />
+  <img alt="tests" src="https://img.shields.io/badge/tests-74%20passing-brightgreen?style=flat" />
   <img alt="runtime" src="https://img.shields.io/badge/DuckDB-in--process-fff100?style=flat" />
   <img alt="charts" src="https://img.shields.io/badge/charts-Vega--Lite-4c78a8?style=flat" />
 </p>
@@ -20,7 +20,7 @@ from the session — see [the verification record](docs/VERIFICATION.md)):
   <img src="docs/assets/chart-line-trend.png" alt="Line chart: revenue trend over order date, rendered inside a dsh conversation" width="49%" />
 </p>
 
-> Status: **M1 + M2 complete.** The dsh plugin is live-verified inside
+> Status: **M1 + M2 + M3 complete.** The dsh plugin is live-verified inside
 > `dsh web 0.1.0-rc.8` — the full attach → profile → query → chart chain ran in
 > a real session and both charts rendered as conversation nodes
 > ([verification record](docs/VERIFICATION.md)). The MCP server passes
@@ -31,11 +31,13 @@ from the session — see [the verification record](docs/VERIFICATION.md)):
 ## What it does
 
 ```
-data_attach   →  register a CSV / Parquet / JSON / XLSX file as a queryable table
-data_profile  →  types, missing values, exact distinct counts, outliers, quality issues, chart ideas
-data_query    →  one read-only SQL statement, results as lossless JSON
-data_chart    →  a Vega-Lite chart drawn in the conversation (dsh) or rendered to SVG (MCP)
-data_sources  →  what is currently attached
+data_attach     →  register a CSV / Parquet / JSON / XLSX file as a queryable table
+data_attach_db  →  attach PostgreSQL / MySQL / SQLite read-only and list its tables
+data_profile    →  types, missing values, exact distinct counts, outliers, quality issues, chart ideas
+data_query      →  one read-only SQL statement, results as lossless JSON
+data_chart      →  a Vega-Lite chart drawn in the conversation (dsh) or rendered to SVG (MCP)
+data_report     →  a self-contained HTML report (profile + charts as inline SVG); prints to PDF
+data_sources    →  what is currently attached
 ```
 
 The same five tools ship on two hosts from one engine:
@@ -92,10 +94,11 @@ value that replays byte-for-byte. Vega-Lite was chosen because it satisfies the
 replay rule, not because it is a popular chart library.
 
 ```
-@openanalyst/core            engine, profiling, chart specs      (host-agnostic)
-  ├── openanalyst            dsh host half: 5 tools + chart event
+@openanalyst/core            engine, profiling, DB connectors, chart specs  (host-agnostic)
+  ├── @openanalyst/report    Vega-Lite -> SVG (pure JS) + self-contained HTML reports
+  ├── openanalyst            dsh host half: 7 tools + chart event
   │     └── ./client         dsh browser half: conversation node + Vega canvas
-  └── openanalyst-mcp-server stdio MCP server: same 5 tools, charts as SVG files
+  └── openanalyst-mcp-server stdio MCP server: same 7 tools, charts as SVG files
 ```
 
 ## Development
@@ -106,10 +109,12 @@ pnpm -r run build
 pnpm -r run test
 ```
 
-55 tests: 37 over the core (SQL policy, JSON conversion, profiling with exact
-distinct counts, charts), 11 driving the real dsh plugin tools end to end
-against DuckDB, and 7 protocol-level MCP tests over the SDK's in-memory
-transport (plus a scripted stdio smoke). Live verification against a running `dsh web` is scripted in
+74 tests: 46 over the core (SQL policy, JSON conversion, profiling with exact
+distinct counts, charts, and live PostgreSQL/MySQL connector tests that
+auto-skip without the Docker fixtures), 5 over the report builder, 14 driving
+the real dsh plugin tools end to end against DuckDB (including per-agent
+isolation), and 9 protocol-level MCP tests over the SDK's in-memory transport
+(plus a scripted stdio smoke). Live verification against a running `dsh web` is scripted in
 `scripts/mock-llm-scripted.mjs` + `scripts/verify-live.patch.yml` — see
 [docs/VERIFICATION.md](docs/VERIFICATION.md).
 
@@ -121,10 +126,11 @@ These are real and worth reading before building on this.
   wrap them in a `run_code` program there. Under the Standard preset the tools
   are called directly. Verified behavior, documented in
   [docs/VERIFICATION.md](docs/VERIFICATION.md).
-- **The dsh plugin's engine is one per activation, not per agent.** Two dsh
-  sessions attaching the same alias will overwrite each other (the MCP server
-  is one process per client, so it isolates naturally). Per-agent isolation is
-  M3 work.
+- **dsh per-agent engines are bounded, not lifecycle-tracked.** Each dsh agent
+  session gets its own engine (no alias collisions), but the harness does not
+  notify plugins on agent disposal, so the plugin holds at most 32 engines and
+  evicts the least-recently used — that session transparently re-attaches on
+  its next call.
 - **The client bundle is ~860 kB.** Vega is inlined because the harness serves
   exactly one file per plugin and has no route for sibling chunks, so a
   chart-free session still pays for it.
@@ -155,7 +161,7 @@ harness plugin:
 |---|---|
 | **M1** | Core + dsh plugin, charts in the conversation — done, live-verified |
 | **M2** | MCP server: same capability in Claude Code / Codex / Cursor — done ← *you are here* |
-| **M3** | HTML / PDF report export, PostgreSQL & MySQL, per-agent isolation |
+| **M3** | HTML report export (prints to PDF), PostgreSQL / MySQL / SQLite, per-agent isolation — done |
 | **M4** | Workbench panel: data sources, chart gallery, saved reports |
 
 ## License

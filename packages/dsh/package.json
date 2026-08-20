@@ -53,7 +53,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@openanalyst/core": "workspace:^"
+    "@openanalyst/core": "workspace:^",
+    "@openanalyst/report": "workspace:^"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "*",

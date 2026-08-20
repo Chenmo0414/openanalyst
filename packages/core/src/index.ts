@@ -16,6 +16,9 @@ export type { ProfileOptions } from './profile.js'
 export { buildChart, suggestCharts, ChartError, MAX_POINTS } from './chart.js'
 export type { Aggregate, ChartRequest } from './chart.js'
 
+export { attachDatabase, inferDatabaseKind, redactSecrets } from './database.js'
+export type { AttachDatabaseOptions, DatabaseHandle, DatabaseKind, DatabaseTable } from './database.js'
+
 export { assertReadOnlyStatement, SqlPolicyError, toAlias } from './sql.js'
 export { toJsonValue, toJsonRow, asNumber } from './json.js'
 

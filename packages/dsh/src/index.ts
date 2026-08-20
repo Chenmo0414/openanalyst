@@ -14,13 +14,18 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { JsonValue as SessionJsonValue } from '@deepseek-ai/dsh-session'
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { resolve as resolvePath } from 'node:path'
 import {
   AnalystEngine,
+  attachDatabase,
   buildChart,
   profileDataset,
   suggestCharts,
   type ChartKind,
+  type DatabaseKind,
 } from '@openanalyst/core'
+import { buildHtmlReport } from '@openanalyst/report'
 // Side-effect import: contributes the `openanalyst/chart` SessionEventMap entry.
 import type {} from './events.ts'
 
@@ -92,22 +97,45 @@ function summarizeChart(chart: {
   return `Rendered a ${chart.kind} chart "${chart.title}" from ${chart.rowCount} data point(s). It is displayed in the conversation.`
 }
 
-export function apply(ctx: Context): void {
-  // One engine per plugin activation. M1 limitation: datasets are shared by
-  // every agent in this process, so two sessions attaching the same alias see
-  // the last one to win. Per-agent isolation is scheduled for M2 — see README.
-  let engine: AnalystEngine | undefined
+/** Engines the plugin may hold at once; beyond this, the least-recent goes. */
+const MAX_ENGINES = 32
 
-  const getEngine = async (): Promise<AnalystEngine> => {
-    engine ??= await AnalystEngine.create()
-    return engine
+export function apply(ctx: Context): void {
+  // One engine PER AGENT, keyed by the owning session id, so two sessions
+  // attaching the same alias no longer collide. An agentless caller (rare —
+  // e.g. a direct host invocation) shares one fallback engine. The harness
+  // does not notify plugins when an agent is disposed, so the map is bounded:
+  // past MAX_ENGINES the least-recently-used engine is closed, and that
+  // session simply re-attaches on its next call.
+  const engines = new Map<string, AnalystEngine>()
+
+  const getEngine = async (exec: { agent?: { id: string } }): Promise<AnalystEngine> => {
+    const key = exec.agent?.id ?? '<agentless>'
+    const existing = engines.get(key)
+    if (existing !== undefined) {
+      // Refresh recency (Map preserves insertion order).
+      engines.delete(key)
+      engines.set(key, existing)
+      return existing
+    }
+    const created = await AnalystEngine.create()
+    engines.set(key, created)
+    if (engines.size > MAX_ENGINES) {
+      const [oldestKey] = engines.keys()
+      if (oldestKey !== undefined) {
+        const oldest = engines.get(oldestKey)
+        engines.delete(oldestKey)
+        void oldest?.close()
+      }
+    }
+    return created
   }
 
   // cordis 4 has no 'dispose' event; a teardown effect is the supported way
-  // to release a resource with the plugin fiber.
+  // to release resources with the plugin fiber.
   ctx.effect(() => () => {
-    void engine?.close()
-    engine = undefined
+    for (const engine of engines.values()) void engine.close()
+    engines.clear()
   })
 
   ctx.tools.register(
@@ -160,7 +188,7 @@ export function apply(ctx: Context): void {
         ],
       },
       async execute(args, exec) {
-        const active = await getEngine()
+        const active = await getEngine(exec)
         const handle = await active.attach(
           args.path,
           args.alias === undefined ? { signal: exec.signal } : { alias: args.alias, signal: exec.signal },
@@ -231,7 +259,7 @@ export function apply(ctx: Context): void {
         render: (_args, value) => [{ type: 'text', text: summarizeProfile(value) }],
       },
       async execute(args, exec) {
-        const active = await getEngine()
+        const active = await getEngine(exec)
         const profile = await profileDataset(active, args.source, { signal: exec.signal })
         return {
           source: profile.source,
@@ -320,7 +348,7 @@ export function apply(ctx: Context): void {
         },
       },
       async execute(args, exec) {
-        const active = await getEngine()
+        const active = await getEngine(exec)
         const result = await active.query(
           args.sql,
           args.maxRows === undefined
@@ -395,7 +423,7 @@ export function apply(ctx: Context): void {
         ],
       },
       async execute(args, exec) {
-        const active = await getEngine()
+        const active = await getEngine(exec)
         const chart = await buildChart(active, {
           source: args.source,
           kind: args.kind as ChartKind,
@@ -464,14 +492,158 @@ export function apply(ctx: Context): void {
           },
         ],
       },
-      async execute() {
-        const active = await getEngine()
+      async execute(_args, exec) {
+        const active = await getEngine(exec)
         return active.sources().map((handle) => ({
           alias: handle.alias,
           origin: handle.origin,
           rowCount: handle.rowCount,
           columnCount: handle.columns.length,
         }))
+      },
+    }),
+  )
+
+  ctx.tools.register(
+    defineTool({
+      name: 'data_attach_db',
+      description:
+        'Attach a PostgreSQL, MySQL, or SQLite database READ-ONLY and list its tables. Pass a ' +
+        'postgres:// or mysql:// connection string, or a path to a .db/.sqlite file. Query tables ' +
+        'afterwards as alias.table (Postgres: alias.schema.table) with data_query. The first use ' +
+        'of each connector downloads a DuckDB extension.',
+      parameters: {
+        target: {
+          type: 'string',
+          required: true,
+          description:
+            'Connection string (postgres://user:pass@host:port/db, mysql://...) or SQLite file path.',
+        },
+        alias: {
+          type: 'string',
+          description: 'Name to reference the database by. Defaults to the connector kind.',
+        },
+        kind: {
+          type: 'string',
+          enum: ['postgres', 'mysql', 'sqlite'],
+          description: 'Force the connector; inferred from the target when omitted.',
+        },
+      },
+      output: {
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            alias: { type: 'string', required: true },
+            kind: { type: 'string', required: true },
+            origin: { type: 'string', required: true },
+            tables: {
+              type: 'array',
+              required: true,
+              items: {
+                type: 'object',
+                additionalProperties: false,
+                properties: {
+                  schema: { oneOf: [{ type: 'string' }, { type: 'null' }], required: true },
+                  name: { type: 'string', required: true },
+                  estimatedRows: { type: 'number', required: true },
+                },
+              },
+            },
+          },
+        },
+        render: (_args, value) => [
+          {
+            type: 'text',
+            text:
+              `Attached ${value.kind} database as "${value.alias}" (read-only). Tables:\n` +
+              value.tables
+                .map(
+                  (table) =>
+                    `- ${table.schema === null ? '' : `${table.schema}.`}${table.name} (~${table.estimatedRows} rows)`,
+                )
+                .join('\n'),
+          },
+        ],
+      },
+      async execute(args, exec) {
+        const active = await getEngine(exec)
+        const handle = await attachDatabase(active, args.target, {
+          ...(args.alias === undefined ? {} : { alias: args.alias }),
+          ...(args.kind === undefined ? {} : { kind: args.kind as DatabaseKind }),
+          ...(exec.signal === undefined ? {} : { signal: exec.signal }),
+        })
+        return {
+          alias: handle.alias,
+          kind: handle.kind,
+          origin: handle.redactedOrigin,
+          tables: handle.tables.map((table) => ({
+            schema: table.schema,
+            name: table.name,
+            estimatedRows: table.estimatedRows,
+          })),
+        }
+      },
+    }),
+  )
+
+  ctx.tools.register(
+    defineTool({
+      name: 'data_report',
+      description:
+        'Build a self-contained HTML analysis report (profile tables, data-quality findings, and ' +
+        'charts embedded as SVG) and write it to a file. Covers every attached file dataset by ' +
+        'default. The file opens offline and prints to PDF from any browser.',
+      parameters: {
+        path: {
+          type: 'string',
+          required: true,
+          description: 'Absolute path for the .html file to write.',
+        },
+        title: {
+          type: 'string',
+          description: 'Report title. Derived from the sources when omitted.',
+        },
+        sources: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Dataset aliases to include. Every attached file source when omitted.',
+        },
+      },
+      output: {
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            path: { type: 'string', required: true },
+            title: { type: 'string', required: true },
+            sources: { type: 'array', required: true, items: { type: 'string' } },
+            chartCount: { type: 'number', required: true },
+          },
+        },
+        render: (_args, value) => [
+          {
+            type: 'text',
+            text: `Wrote "${value.title}" (${value.chartCount} chart(s), sources: ${value.sources.join(', ')}) to ${value.path}`,
+          },
+        ],
+      },
+      async execute(args, exec) {
+        const active = await getEngine(exec)
+        const report = await buildHtmlReport(active, {
+          ...(args.title === undefined ? {} : { title: args.title }),
+          ...(args.sources === undefined ? {} : { sources: args.sources }),
+          ...(exec.signal === undefined ? {} : { signal: exec.signal }),
+        })
+        const target = resolvePath(args.path)
+        await mkdir(resolvePath(target, '..'), { recursive: true })
+        await writeFile(target, report.html, 'utf-8')
+        return {
+          path: target,
+          title: report.title,
+          sources: [...report.sources],
+          chartCount: report.chartCount,
+        }
       },
     }),
   )

@@ -20,6 +20,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
 import {
   AnalystEngine,
+  attachDatabase,
   buildChart,
   profileDataset,
   suggestCharts,
@@ -27,9 +28,13 @@ import {
   ChartError,
   SqlPolicyError,
   type ChartKind,
+  type DatabaseKind,
   type JsonValue,
 } from '@openanalyst/core'
+import { buildHtmlReport } from '@openanalyst/report'
 import { renderChartSvg } from './render.js'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { resolve as resolvePath } from 'node:path'
 
 const CHART_KINDS = ['bar', 'line', 'scatter', 'histogram', 'area'] as const
 const AGGREGATES = ['sum', 'avg', 'count', 'min', 'max', 'none'] as const
@@ -257,6 +262,94 @@ export function createServer(options: ServerOptions = {}): McpServer {
             svgPath: rendered.svgPath,
             vegaLite: chart.vegaLite,
           },
+        )
+      } catch (error) {
+        return fail(error)
+      }
+    },
+  )
+
+  server.registerTool(
+    'data_attach_db',
+    {
+      title: 'Attach a database',
+      description:
+        'Attach a PostgreSQL, MySQL, or SQLite database READ-ONLY and list its tables. ' +
+        'Pass a postgres:// or mysql:// connection string, or a path to a .db/.sqlite file. ' +
+        'Query tables afterwards as alias.table (Postgres: alias.schema.table) with data_query. ' +
+        'The first use of each connector downloads a DuckDB extension.',
+      inputSchema: {
+        target: z
+          .string()
+          .min(1)
+          .describe('Connection string (postgres://user:pass@host:port/db, mysql://...) or SQLite file path.'),
+        alias: z.string().optional().describe('Name to reference the database by. Defaults to the connector kind.'),
+        kind: z
+          .enum(['postgres', 'mysql', 'sqlite'])
+          .optional()
+          .describe('Force the connector; inferred from the target when omitted.'),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    async ({ target, alias, kind }) => {
+      try {
+        const active = await getEngine()
+        const handle = await attachDatabase(active, target, {
+          ...(alias === undefined ? {} : { alias }),
+          ...(kind === undefined ? {} : { kind: kind as DatabaseKind }),
+        })
+        const tables = handle.tables.map((table) => ({
+          schema: table.schema,
+          name: table.name,
+          estimatedRows: table.estimatedRows,
+        }))
+        return ok(
+          `Attached ${handle.kind} database as "${handle.alias}" (read-only). Tables:\n` +
+            tables
+              .map((table) => `- ${table.schema === null ? '' : `${table.schema}.`}${table.name} (~${table.estimatedRows} rows)`)
+              .join('\n'),
+          { alias: handle.alias, kind: handle.kind, origin: handle.redactedOrigin, tables },
+        )
+      } catch (error) {
+        return fail(error)
+      }
+    },
+  )
+
+  server.registerTool(
+    'data_report',
+    {
+      title: 'Export an HTML report',
+      description:
+        'Build a self-contained HTML analysis report (profile tables, data-quality findings, and ' +
+        'charts embedded as SVG) and write it to a file. Covers every attached file dataset by ' +
+        'default. The file opens offline and prints to PDF from any browser.',
+      inputSchema: {
+        path: z
+          .string()
+          .min(1)
+          .describe('Absolute path for the .html file to write.'),
+        title: z.string().optional().describe('Report title. Derived from the sources when omitted.'),
+        sources: z
+          .array(z.string())
+          .optional()
+          .describe('Dataset aliases to include. Every attached file source when omitted.'),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+    },
+    async ({ path, title, sources }) => {
+      try {
+        const active = await getEngine()
+        const report = await buildHtmlReport(active, {
+          ...(title === undefined ? {} : { title }),
+          ...(sources === undefined ? {} : { sources }),
+        })
+        const target = resolvePath(path)
+        await mkdir(resolvePath(target, '..'), { recursive: true })
+        await writeFile(target, report.html, 'utf-8')
+        return ok(
+          `Wrote "${report.title}" (${report.chartCount} chart(s), sources: ${report.sources.join(', ')}) to ${target}`,
+          { path: target, title: report.title, sources: [...report.sources], chartCount: report.chartCount },
         )
       } catch (error) {
         return fail(error)

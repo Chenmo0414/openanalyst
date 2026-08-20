@@ -54,12 +54,13 @@ function mountPlugin(): Harness {
 }
 
 /** A minimal ToolRunContext. `agent` is present only when a session is wanted. */
-function runContext(appended?: AppendedEvent[]): ToolRunContext {
+function runContext(appended?: AppendedEvent[], agentId = 'agent-default'): ToolRunContext {
   const controller = new AbortController()
   const agent =
     appended === undefined
       ? undefined
       : {
+          id: agentId,
           session: {
             append(type: string, data: unknown) {
               appended.push({ type, data })
@@ -67,6 +68,17 @@ function runContext(appended?: AppendedEvent[]): ToolRunContext {
           },
         }
   return { signal: controller.signal, agent } as unknown as ToolRunContext
+}
+
+async function callAs(
+  name: string,
+  args: unknown,
+  agentId: string,
+  appended: AppendedEvent[] = [],
+): Promise<unknown> {
+  const tool = harness.tools.get(name)
+  if (tool === undefined) throw new Error(`tool ${name} was not registered`)
+  return tool.execute(args, runContext(appended, agentId))
 }
 
 let harness: Harness
@@ -86,12 +98,14 @@ async function call(name: string, args: unknown, appended?: AppendedEvent[]): Pr
 }
 
 describe('plugin registration', () => {
-  it('registers the five data tools', () => {
+  it('registers the seven data tools', () => {
     expect([...harness.tools.keys()].sort()).toEqual([
       'data_attach',
+      'data_attach_db',
       'data_chart',
       'data_profile',
       'data_query',
+      'data_report',
       'data_sources',
     ])
   })
@@ -158,14 +172,62 @@ describe('the attach -> profile -> query -> chart chain', () => {
   })
 })
 
+describe('per-agent isolation', () => {
+  it('keeps datasets attached by different agents separate', async () => {
+    await callAs('data_attach', { path: SALES_CSV, alias: 'mine' }, 'agent-a')
+
+    // agent-a sees it; agent-b does not.
+    const forA = (await callAs('data_sources', {}, 'agent-a')) as { alias: string }[]
+    const forB = (await callAs('data_sources', {}, 'agent-b')) as { alias: string }[]
+    expect(forA.map((s) => s.alias)).toContain('mine')
+    expect(forB.map((s) => s.alias)).not.toContain('mine')
+  })
+
+  it('lets two agents use the same alias without collision', async () => {
+    await callAs('data_attach', { path: SALES_CSV, alias: 'shared_name' }, 'agent-a')
+    await callAs('data_attach', { path: SALES_CSV, alias: 'shared_name' }, 'agent-b')
+
+    const a = (await callAs('data_query', { sql: 'SELECT count(*) AS n FROM shared_name' }, 'agent-a')) as {
+      rows: { n: number }[]
+    }
+    expect(a.rows[0]?.n).toBe(10)
+  })
+})
+
+describe('data_report', () => {
+  it('writes a self-contained HTML file', async () => {
+    const { mkdtempSync, readFileSync, rmSync } = await import('node:fs')
+    const { tmpdir } = await import('node:os')
+    const { join } = await import('node:path')
+    const dir = mkdtempSync(join(tmpdir(), 'oa-dsh-report-'))
+    try {
+      await call('data_attach', { path: SALES_CSV })
+      const out = join(dir, 'report.html')
+      const result = (await call('data_report', { path: out, title: 'dsh report' })) as {
+        path: string
+        chartCount: number
+      }
+      expect(result.chartCount).toBeGreaterThanOrEqual(2)
+      const html = readFileSync(result.path, 'utf-8')
+      expect(html).toContain('dsh report')
+      expect(html).toContain('<svg')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})
+
 describe('data_chart', () => {
   it('emits one openanalyst/chart event carrying a complete Vega-Lite spec', async () => {
-    await call('data_attach', { path: SALES_CSV })
+    // Isolation means the attach and the chart must share one agent.
     const appended: AppendedEvent[] = []
+    await callAs('data_attach', { path: SALES_CSV }, 'chart-agent', appended)
+    appended.length = 0
 
-    const result = (await call(
+    const result = (await callAs(
       'data_chart',
       { source: 'sales', kind: 'bar', x: 'region', y: 'revenue', aggregate: 'sum' },
+      'chart-agent',
       appended,
     )) as { displayed: boolean; rowCount: number; title: string }
 
@@ -196,11 +258,13 @@ describe('data_chart', () => {
   })
 
   it('survives a JSON round trip, so a replayed log rebuilds the same chart', async () => {
-    await call('data_attach', { path: SALES_CSV })
     const appended: AppendedEvent[] = []
-    await call(
+    await callAs('data_attach', { path: SALES_CSV }, 'replay-agent', appended)
+    appended.length = 0
+    await callAs(
       'data_chart',
       { source: 'sales', kind: 'line', x: 'order_date', y: 'revenue' },
+      'replay-agent',
       appended,
     )
 
