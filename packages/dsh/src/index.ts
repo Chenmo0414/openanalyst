@@ -26,8 +26,7 @@ import {
   type DatabaseKind,
 } from '@openanalyst/core'
 import { buildHtmlReport } from '@openanalyst/report'
-// Side-effect import: contributes the `openanalyst/chart` SessionEventMap entry.
-import type {} from './events.ts'
+import { registerPluginEvents } from './events.ts'
 
 export type * from './events.ts'
 
@@ -101,6 +100,10 @@ function summarizeChart(chart: {
 const MAX_ENGINES = 32
 
 export function apply(ctx: Context): void {
+  // Must run before any session containing our events is cold-loaded — see
+  // registerPluginEvents' doc for why this exists at all.
+  registerPluginEvents()
+
   // One engine PER AGENT, keyed by the owning session id, so two sessions
   // attaching the same alias no longer collide. An agentless caller (rare —
   // e.g. a direct host invocation) shares one fallback engine. The harness

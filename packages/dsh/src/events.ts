@@ -10,7 +10,40 @@
  * @module openanalyst/events
  */
 
+import { KNOWN_SESSION_EVENT_TYPES } from '@deepseek-ai/dsh-session'
 import type { ChartKind, JsonValue } from '@openanalyst/core'
+
+/** Every event type this plugin appends to session logs. */
+export const PLUGIN_EVENT_TYPES = ['openanalyst/chart'] as const
+
+/**
+ * Register this plugin's event vocabulary with the persistence read path.
+ *
+ * Without this, a session containing an `openanalyst/chart` event LOADS while
+ * the host process lives (in-memory replay) but is REFUSED on the next cold
+ * start: the persistence coordinator checks every stored event against
+ * `KNOWN_SESSION_EVENT_TYPES` and `Session.append()` exposes no way to mark an
+ * event `ignorable`. The harness's own comment defers a plugin registration
+ * surface "until such a consumer exists" — this plugin is that consumer, so
+ * until the official surface lands, the known-types set (a mutable runtime
+ * Set) is extended directly.
+ *
+ * CAVEAT: this only works when the plugin resolves the SAME `dsh-session`
+ * module instance the host runtime uses (true for a normal profile install,
+ * where the package is a peer dependency). A second copy of dsh-session in
+ * the plugin's own tree would receive the registration into the wrong Set —
+ * which is why `registerPluginEvents` verifies nothing and callers treat a
+ * still-failing cold load as this exact symptom.
+ */
+export function registerPluginEvents(): void {
+  try {
+    const registry = KNOWN_SESSION_EVENT_TYPES as Set<string>
+    for (const type of PLUGIN_EVENT_TYPES) registry.add(type)
+  } catch {
+    // A frozen or foreign Set must not stop the plugin from loading; the
+    // failure mode is the pre-existing one (cold session loads refuse).
+  }
+}
 
 export interface ChartEventData {
   /** Human-facing chart title, already resolved by the core. */

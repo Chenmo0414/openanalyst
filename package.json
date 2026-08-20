@@ -16,6 +16,7 @@
   "devDependencies": {
     "@deepseek-ai/dsh": "0.1.0-rc.8",
     "@deepseek-ai/dsh-llm-mock-server": "0.1.0-rc.8",
+    "puppeteer-core": "^25.8.0",
     "typescript": "^5.7.2",
     "vitest": "^3.0.5"
   },

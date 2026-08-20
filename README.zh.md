@@ -1,3 +1,4 @@
+<p align="center"><img src="docs/assets/logo.svg" alt="OpenAnalyst logo" width="96" height="96" /></p>
 <h1 align="center">OpenAnalyst</h1>
 
 <p align="center"><b>把你的编码 Agent 变成数据分析师。</b><br/>
@@ -12,11 +13,11 @@
 
 <p align="center"><a href="README.md">English</a> · 中文</p>
 
-在真实 DeepSeek Harness 会话里渲染出来的图表（直接从会话导出——见[验证记录](docs/VERIFICATION.md)）：
+一个真实的 DeepSeek Harness 会话——Agent 接入 CSV、生成画像、把图表画成对话节点
+（无头 Chrome 对实机界面的截屏，见[验证记录](docs/VERIFICATION.md)）：
 
 <p align="center">
-  <img src="docs/assets/chart-bar-region.png" alt="柱状图：各区域营收合计，在 dsh 对话中渲染" width="49%" />
-  <img src="docs/assets/chart-line-trend.png" alt="折线图：营收随时间趋势，在 dsh 对话中渲染" width="49%" />
+  <img src="docs/assets/conversation-full.png" alt="完整的 DeepSeek Harness 窗口：热力图与箱线图渲染在对话中，侧栏与输入框可见" width="100%" />
 </p>
 
 ---

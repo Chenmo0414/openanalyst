@@ -1,3 +1,4 @@
+<p align="center"><img src="docs/assets/logo.svg" alt="OpenAnalyst logo" width="96" height="96" /></p>
 <h1 align="center">OpenAnalyst</h1>
 
 <p align="center"><b>Turn your coding agent into a data analyst.</b><br/>
@@ -12,12 +13,12 @@ Attach a CSV, get an automatic profile, ask questions in SQL, and see real chart
 
 <p align="center">English · <a href="README.zh.md">中文</a></p>
 
-Charts rendered live inside a DeepSeek Harness conversation (exported straight
-from the session — see [the verification record](docs/VERIFICATION.md)):
+A real DeepSeek Harness session — the agent attached a CSV, profiled it, and drew
+these charts as conversation nodes (headless-Chrome capture of the live UI; see
+[the verification record](docs/VERIFICATION.md)):
 
 <p align="center">
-  <img src="docs/assets/chart-bar-region.png" alt="Bar chart: sum of revenue by region, rendered inside a dsh conversation" width="49%" />
-  <img src="docs/assets/chart-line-trend.png" alt="Line chart: revenue trend over order date, rendered inside a dsh conversation" width="49%" />
+  <img src="docs/assets/conversation-full.png" alt="Full DeepSeek Harness window: a heatmap and a boxplot rendered inside the conversation, with the session sidebar and composer visible" width="100%" />
 </p>
 
 > Status: **M1 + M2 + M3 complete.** The dsh plugin is live-verified inside
