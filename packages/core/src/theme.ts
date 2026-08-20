@@ -29,6 +29,15 @@ export const CATEGORICAL = [
 /** Single-series mark color: categorical slot 1. */
 export const SERIES_1 = CATEGORICAL[0]
 
+/**
+ * Sequential blue ramp (light -> dark) for continuous magnitude — heatmap
+ * cells, choropleth fills. Same reference instance as the categorical slots.
+ */
+export const SEQUENTIAL = [
+  '#cde2fb', '#b7d3f6', '#9ec5f4', '#86b6ef', '#6da7ec', '#5598e7',
+  '#3987e5', '#2a78d6', '#256abf', '#1c5cab', '#184f95', '#104281', '#0d366b',
+] as const
+
 /** Ink tokens (light surface). Text never wears a series color. */
 const INK = '#0b0b0b'
 const INK_SECONDARY = '#52514e'
@@ -88,7 +97,7 @@ export const CHART_CONFIG: JsonValue = {
     symbolSize: 80,
     symbolType: 'circle',
   },
-  range: { category: [...CATEGORICAL] },
+  range: { category: [...CATEGORICAL], heatmap: [...SEQUENTIAL], ramp: [...SEQUENTIAL] },
   bar: {
     fill: SERIES_1,
     cornerRadiusTopLeft: 4,
@@ -101,4 +110,12 @@ export const CHART_CONFIG: JsonValue = {
   point: { fill: SERIES_1, size: 64, filled: true, stroke: '#ffffff', strokeWidth: 1 },
   area: { fill: SERIES_1, line: { stroke: SERIES_1, strokeWidth: 2 }, opacity: 0.16 },
   rule: { color: AXIS },
+  rect: { stroke: '#ffffff', strokeWidth: 1 },
+  boxplot: {
+    size: 24,
+    box: { fill: SERIES_1, fillOpacity: 0.55, stroke: SERIES_1 },
+    median: { stroke: '#ffffff', strokeWidth: 2 },
+    rule: { stroke: SERIES_1, strokeWidth: 1.5 },
+    outliers: { fill: SERIES_1, stroke: '#ffffff', strokeWidth: 1, size: 36 },
+  },
 }

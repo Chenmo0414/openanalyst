@@ -28,7 +28,8 @@ data_attach     →  把 CSV / Parquet / JSON / XLSX 文件注册为可查询的
 data_attach_db  →  只读接入 PostgreSQL / MySQL / SQLite 并列出其表
 data_profile    →  类型、缺失值、精确基数、离群点、数据质量问题、图表建议
 data_query      →  一条只读 SQL（DuckDB 方言），结果为无损 JSON
-data_chart      →  在对话里画一张 Vega-Lite 图（dsh）/ 渲染为 SVG（MCP）
+data_chart      →  bar / line / scatter / histogram / area / heatmap / boxplot，
+                   支持 color 分组、stacked/grouped、facet 小倍数；line/scatter 可拖拽缩放
 data_report     →  自包含 HTML 报告（画像 + 内嵌 SVG 图表），浏览器可直接打印为 PDF
 data_sources    →  当前已接入的数据集
 ```
@@ -42,6 +43,14 @@ data_sources    →  当前已接入的数据集
 
 在 dsh 的 Code Mode（PTC 模式）下，全部工具也可以在 `run_code` 程序里以
 `await tools.data_*(args)` 链式调用，一段程序内完成 接入 → 画像 → 查询 → 出图。
+
+更多对话内图型（同一主题，同样从真实会话导出）：
+
+<p align="center">
+  <img src="docs/assets/chart-heatmap.png" alt="热力图：区域 × 产品营收" width="32%" />
+  <img src="docs/assets/chart-boxplot.png" alt="箱线图：各区域营收分布与离群点" width="32%" />
+  <img src="docs/assets/chart-grouped-bar.png" alt="分组柱状图：各区域分产品营收" width="32%" />
+</p>
 
 ## 安装
 

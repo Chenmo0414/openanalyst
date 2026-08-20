@@ -87,7 +87,11 @@ export function ChartNodeView({ node }: ChatNodeViewProps<'openanalyst-chart'>):
     type EmbedFn = (
       el: HTMLElement,
       spec: unknown,
-      options?: { actions?: boolean; renderer?: 'canvas' | 'svg' },
+      options?: {
+        actions?: boolean | { export?: boolean; source?: boolean; compiled?: boolean; editor?: boolean }
+        renderer?: 'canvas' | 'svg'
+        i18n?: { PNG_ACTION?: string; SVG_ACTION?: string }
+      },
     ) => Promise<{ finalize: () => void; view: { resize: () => { runAsync: () => Promise<unknown> } } }>
 
     void import('vega-embed')
@@ -105,7 +109,9 @@ export function ChartNodeView({ node }: ChatNodeViewProps<'openanalyst-chart'>):
         element.style.display = 'block'
         element.style.width = '100%'
         const result = await embed(element, vegaLite, {
-          actions: false,
+          // The (…) menu keeps only PNG/SVG export — a chart someone can save
+          // is a chart someone can share. Source/editor links stay off.
+          actions: { export: true, source: false, compiled: false, editor: false },
           renderer: 'canvas',
         })
         if (disposed) {

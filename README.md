@@ -35,7 +35,8 @@ data_attach     →  register a CSV / Parquet / JSON / XLSX file as a queryable 
 data_attach_db  →  attach PostgreSQL / MySQL / SQLite read-only and list its tables
 data_profile    →  types, missing values, exact distinct counts, outliers, quality issues, chart ideas
 data_query      →  one read-only SQL statement, results as lossless JSON
-data_chart      →  a Vega-Lite chart drawn in the conversation (dsh) or rendered to SVG (MCP)
+data_chart      →  bar / line / scatter / histogram / area / heatmap / boxplot — with color
+                   series, stacked/grouped layout, facet small multiples; line & scatter pan/zoom
 data_report     →  a self-contained HTML report (profile + charts as inline SVG); prints to PDF
 data_sources    →  what is currently attached
 ```
@@ -50,6 +51,14 @@ The same five tools ship on two hosts from one engine:
 Every tool is also reachable from Code Mode as `await tools.data_*(args)`, so
 the agent can chain the whole analysis inside one program instead of spending a
 round trip per step.
+
+More in-conversation chart kinds (same theme, exported from a live session):
+
+<p align="center">
+  <img src="docs/assets/chart-heatmap.png" alt="Heatmap: revenue by region and product" width="32%" />
+  <img src="docs/assets/chart-boxplot.png" alt="Boxplot: revenue distribution and outliers per region" width="32%" />
+  <img src="docs/assets/chart-grouped-bar.png" alt="Grouped bars: revenue per region split by product" width="32%" />
+</p>
 
 ## Install
 

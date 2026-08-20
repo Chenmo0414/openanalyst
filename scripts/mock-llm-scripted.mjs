@@ -34,19 +34,24 @@ const SCRIPT = [
   {
     kind: 'tool',
     name: 'data_chart',
-    args: { source: 'sales_2026', kind: 'bar', x: 'region', y: 'revenue', aggregate: 'sum' },
+    args: { source: 'sales_2026', kind: 'heatmap', x: 'region', y: 'product', value: 'revenue', aggregate: 'sum' },
   },
   {
     kind: 'tool',
     name: 'data_chart',
-    args: { source: 'sales_2026', kind: 'line', x: 'order_date', y: 'revenue', aggregate: 'sum' },
+    args: { source: 'sales_2026', kind: 'boxplot', x: 'region', y: 'revenue' },
+  },
+  {
+    kind: 'tool',
+    name: 'data_chart',
+    args: { source: 'sales_2026', kind: 'bar', x: 'region', y: 'revenue', color: 'product', stack: 'grouped' },
   },
   {
     kind: 'text',
     text:
-      'Attached sales-2026.csv (482 rows), profiled it, and rendered two charts: ' +
-      'revenue by region and the revenue trend over time. The profile flagged 2 duplicate ' +
-      'rows and 13 revenue outliers worth a look.',
+      'Attached sales-2026.csv (482 rows), profiled it, and rendered three charts: a ' +
+      'region-by-product revenue heatmap, revenue distributions per region (boxplot), and ' +
+      'grouped revenue bars. The profile flagged 2 duplicate rows and 13 revenue outliers.',
   },
 ]
 

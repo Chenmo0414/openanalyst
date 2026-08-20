@@ -36,7 +36,7 @@ import { renderChartSvg } from './render.js'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { resolve as resolvePath } from 'node:path'
 
-const CHART_KINDS = ['bar', 'line', 'scatter', 'histogram', 'area'] as const
+const CHART_KINDS = ['bar', 'line', 'scatter', 'histogram', 'area', 'heatmap', 'boxplot'] as const
 const AGGREGATES = ['sum', 'avg', 'count', 'min', 'max', 'none'] as const
 
 /** Where rendered SVGs land unless the client overrides per call. */
@@ -229,18 +229,32 @@ export function createServer(options: ServerOptions = {}): McpServer {
         y: z
           .string()
           .optional()
-          .describe('Column for the y axis. Required for every kind except histogram.'),
+          .describe(
+            'Column for the y axis. Required for every kind except histogram. For heatmap the ' +
+              'second category axis; for boxplot the numeric column.',
+          ),
+        value: z.string().optional().describe('Heatmap only: numeric column aggregated into each cell.'),
         aggregate: z
           .enum(AGGREGATES)
           .optional()
-          .describe('How to combine y within each x. Defaults to sum for bar/line/area, none for scatter.'),
+          .describe(
+            'How to combine y (or value) within each group. Defaults to sum for bar/line/area/heatmap, none for scatter/boxplot.',
+          ),
         color: z.string().optional().describe('Optional column to split series by colour.'),
+        stack: z
+          .enum(['stacked', 'grouped'])
+          .optional()
+          .describe('Bar layout when color is present. Defaults to stacked.'),
+        facet: z
+          .string()
+          .optional()
+          .describe('Split into small multiples by this low-cardinality column (bar/line/scatter/area only).'),
         title: z.string().optional().describe('Chart title. Derived from the columns when omitted.'),
       },
       // Writes one new SVG file; never modifies existing data.
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     },
-    async ({ source, kind, x, y, aggregate, color, title }) => {
+    async ({ source, kind, x, y, value, aggregate, color, stack, facet, title }) => {
       try {
         const active = await getEngine()
         const chart = await buildChart(active, {
@@ -248,8 +262,11 @@ export function createServer(options: ServerOptions = {}): McpServer {
           kind: kind as ChartKind,
           x,
           ...(y === undefined ? {} : { y }),
+          ...(value === undefined ? {} : { value }),
           ...(aggregate === undefined ? {} : { aggregate }),
           ...(color === undefined ? {} : { color }),
+          ...(stack === undefined ? {} : { stack }),
+          ...(facet === undefined ? {} : { facet }),
           ...(title === undefined ? {} : { title }),
         })
         const rendered = await renderChartSvg(chart.vegaLite, chartDir, chart.title)

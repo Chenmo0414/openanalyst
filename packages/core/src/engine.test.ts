@@ -236,6 +236,121 @@ describe('buildChart', () => {
   })
 })
 
+describe('new chart kinds', () => {
+  let wide: AnalystEngine
+
+  beforeAll(async () => {
+    wide = await AnalystEngine.create()
+    await wide.attach(SALES_2026_CSV)
+  })
+
+  afterAll(async () => {
+    await wide.close()
+  })
+
+  it('builds a heatmap with aggregated cells and a quantitative color', async () => {
+    const chart = await buildChart(wide, {
+      source: 'sales_2026',
+      kind: 'heatmap',
+      x: 'region',
+      y: 'product',
+      value: 'revenue',
+      aggregate: 'sum',
+    })
+    // 4 regions x 4 products, minus any empty combination.
+    expect(chart.rowCount).toBeGreaterThanOrEqual(12)
+    expect(chart.rowCount).toBeLessThanOrEqual(16)
+
+    const spec = chart.vegaLite as Record<string, JsonValue>
+    expect(spec['mark']).toEqual({ type: 'rect', tooltip: true })
+    const encoding = spec['encoding'] as Record<string, Record<string, JsonValue>>
+    expect(encoding['color']?.['type']).toBe('quantitative')
+    expect(encoding['color']?.['field']).toBe('revenue')
+    expect(chart.title).toContain('\u00d7')
+  })
+
+  it('requires a value column for heatmaps', async () => {
+    await expect(
+      buildChart(wide, { source: 'sales_2026', kind: 'heatmap', x: 'region', y: 'product' }),
+    ).rejects.toThrow(/needs a numeric/)
+  })
+
+  it('builds a boxplot from raw rows with the 1.5-IQR whisker rule', async () => {
+    const chart = await buildChart(wide, {
+      source: 'sales_2026',
+      kind: 'boxplot',
+      x: 'region',
+      y: 'revenue',
+    })
+    expect(chart.rowCount).toBe(482)
+    const spec = chart.vegaLite as Record<string, JsonValue>
+    expect(spec['mark']).toEqual({ type: 'boxplot', extent: 1.5 })
+    const encoding = spec['encoding'] as Record<string, Record<string, JsonValue>>
+    expect(encoding['y']?.['type']).toBe('quantitative')
+  })
+
+  it('samples boxplot rows deterministically past the cap', async () => {
+    const first = await buildChart(wide, {
+      source: 'sales_2026',
+      kind: 'boxplot',
+      x: 'region',
+      y: 'revenue',
+      limit: 100,
+    })
+    const second = await buildChart(wide, {
+      source: 'sales_2026',
+      kind: 'boxplot',
+      x: 'region',
+      y: 'revenue',
+      limit: 100,
+    })
+    expect(first.rowCount).toBe(100)
+    // Seeded reservoir: byte-identical across runs, so replay stays pure.
+    expect(first.vegaLite).toEqual(second.vegaLite)
+  })
+
+  it('lays grouped bars side by side via xOffset', async () => {
+    const chart = await buildChart(wide, {
+      source: 'sales_2026',
+      kind: 'bar',
+      x: 'region',
+      y: 'revenue',
+      color: 'product',
+      stack: 'grouped',
+    })
+    const encoding = (chart.vegaLite as Record<string, Record<string, Record<string, JsonValue>>>)['encoding']
+    expect(encoding?.['xOffset']?.['field']).toBe('product')
+  })
+
+  it('facets into small multiples with per-panel sizing', async () => {
+    const chart = await buildChart(wide, {
+      source: 'sales_2026',
+      kind: 'line',
+      x: 'order_date',
+      y: 'revenue',
+      facet: 'region',
+    })
+    const spec = chart.vegaLite as Record<string, JsonValue>
+    const encoding = spec['encoding'] as Record<string, Record<string, JsonValue>>
+    expect(encoding['facet']?.['field']).toBe('region')
+    expect(encoding['facet']?.['columns']).toBe(3)
+    expect(spec['width']).toBe(210)
+  })
+
+  it('adds pan/zoom params to continuous charts only', async () => {
+    const line = await buildChart(wide, { source: 'sales_2026', kind: 'line', x: 'order_date', y: 'revenue' })
+    const bar = await buildChart(wide, { source: 'sales_2026', kind: 'bar', x: 'region', y: 'revenue' })
+    expect((line.vegaLite as Record<string, unknown>)['params']).toBeDefined()
+    expect((bar.vegaLite as Record<string, unknown>)['params']).toBeUndefined()
+  })
+
+  it('rejects faceted heatmaps and boxplots', async () => {
+    await expect(
+      buildChart(wide, { source: 'sales_2026', kind: 'boxplot', x: 'region', y: 'revenue', facet: 'product' }),
+    ).rejects.toThrow(/not supported/)
+  })
+})
+
 describe('suggestCharts', () => {
   it('leads with a time trend and a category breakdown', async () => {
     const profile = await profileDataset(engine, 'sales')
@@ -257,5 +372,24 @@ describe('suggestCharts', () => {
     const profile = await profileDataset(engine, 'sales')
     const suggestions = suggestCharts(profile, 5)
     expect(suggestions.some((item) => item.kind === 'bar' && item.x === 'order_id')).toBe(false)
+  })
+
+  it('proposes a heatmap for two small categories plus a measure, and a boxplot for outliers', async () => {
+    const wide = await AnalystEngine.create()
+    try {
+      await wide.attach(SALES_2026_CSV)
+      const profile = await profileDataset(wide, 'sales_2026')
+      const suggestions = suggestCharts(profile, 8)
+      const heatmap = suggestions.find((item) => item.kind === 'heatmap')
+      expect(heatmap?.value).toBeDefined()
+      expect(suggestions.some((item) => item.kind === 'boxplot')).toBe(true)
+      // Every suggestion must actually build.
+      for (const suggestion of suggestions) {
+        const chart = await buildChart(wide, suggestion)
+        expect(chart.rowCount).toBeGreaterThan(0)
+      }
+    } finally {
+      await wide.close()
+    }
   })
 })

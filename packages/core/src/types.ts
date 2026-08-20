@@ -88,7 +88,7 @@ export interface QueryResult {
   readonly truncated: boolean
 }
 
-export type ChartKind = 'bar' | 'line' | 'scatter' | 'histogram' | 'area'
+export type ChartKind = 'bar' | 'line' | 'scatter' | 'histogram' | 'area' | 'heatmap' | 'boxplot'
 
 export interface ChartSpec {
   readonly kind: ChartKind

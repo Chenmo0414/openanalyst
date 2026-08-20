@@ -22,11 +22,16 @@ export const DEFAULT_SVG_WIDTH = 640
  * same spec object onward in protocol payloads.
  */
 export async function chartToSvg(spec: JsonValue, width = DEFAULT_SVG_WIDTH): Promise<string> {
-  const pinned = {
-    ...structuredClone(spec as Record<string, JsonValue>),
-    width,
-    autosize: { type: 'fit', contains: 'padding' },
-  }
+  const cloned = structuredClone(spec as Record<string, JsonValue>)
+  // A faceted spec sizes per panel and rejects autosize "fit"; leave its own
+  // width/autosize untouched and only pin single-view specs to a raster width.
+  const faceted =
+    typeof cloned['encoding'] === 'object' &&
+    cloned['encoding'] !== null &&
+    'facet' in (cloned['encoding'] as Record<string, unknown>)
+  const pinned = faceted
+    ? cloned
+    : { ...cloned, width, autosize: { type: 'fit', contains: 'padding' } }
 
   const compiled = vegaLite.compile(pinned as never).spec
   const view = new vega.View(vega.parse(compiled), { renderer: 'none' })

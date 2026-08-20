@@ -34,7 +34,7 @@ export type * from './events.ts'
 export const name = 'openanalyst'
 export const inject = ['tools']
 
-const CHART_KINDS = ['bar', 'line', 'scatter', 'histogram', 'area'] as const
+const CHART_KINDS = ['bar', 'line', 'scatter', 'histogram', 'area', 'heatmap', 'boxplot'] as const
 const AGGREGATES = ['sum', 'avg', 'count', 'min', 'max', 'none'] as const
 
 /** Reusable schema fragment for a column profile row. */
@@ -377,9 +377,12 @@ export function apply(ctx: Context): void {
       name: 'data_chart',
       description:
         'Draw a chart from an attached dataset and display it in the conversation. Pick the kind ' +
-        'that fits the question: line for a trend over time, bar to compare categories, scatter for ' +
-        'a relationship between two numbers, histogram for one distribution, area for a cumulative ' +
-        'trend. data_profile suggests good starting points.',
+        'that fits the question: line for a trend over time, bar to compare categories (stack: ' +
+        'grouped for side-by-side series), scatter for a relationship between two numbers, ' +
+        'histogram for one distribution, area for a cumulative trend, heatmap for two categories ' +
+        'x a measure (needs value), boxplot to compare distributions per category. Line and ' +
+        'scatter pan/zoom in place; facet splits any of bar/line/scatter/area into small ' +
+        'multiples. data_profile suggests good starting points.',
       parameters: {
         source: { type: 'string', required: true, description: 'Alias returned by data_attach.' },
         kind: {
@@ -391,15 +394,31 @@ export function apply(ctx: Context): void {
         x: { type: 'string', required: true, description: 'Column for the x axis.' },
         y: {
           type: 'string',
-          description: 'Column for the y axis. Required for every kind except histogram.',
+          description:
+            'Column for the y axis. Required for every kind except histogram. For heatmap this is ' +
+            'the second category axis; for boxplot the numeric column.',
+        },
+        value: {
+          type: 'string',
+          description: 'Heatmap only: numeric column aggregated into each cell.',
         },
         aggregate: {
           type: 'string',
           enum: [...AGGREGATES],
           description:
-            'How to combine y within each x. Defaults to sum for bar/line/area and none for scatter.',
+            'How to combine y (or value) within each group. Defaults to sum for bar/line/area/heatmap and none for scatter/boxplot.',
         },
         color: { type: 'string', description: 'Optional column to split series by colour.' },
+        stack: {
+          type: 'string',
+          enum: ['stacked', 'grouped'],
+          description: 'Bar layout when color is present. Defaults to stacked.',
+        },
+        facet: {
+          type: 'string',
+          description:
+            'Split into small multiples by this low-cardinality column (bar/line/scatter/area only).',
+        },
         title: { type: 'string', description: 'Chart title. Derived from the columns when omitted.' },
       },
       output: {
@@ -429,8 +448,11 @@ export function apply(ctx: Context): void {
           kind: args.kind as ChartKind,
           x: args.x,
           ...(args.y === undefined ? {} : { y: args.y }),
+          ...(args.value === undefined ? {} : { value: args.value }),
           ...(args.aggregate === undefined ? {} : { aggregate: args.aggregate as 'sum' }),
           ...(args.color === undefined ? {} : { color: args.color }),
+          ...(args.stack === undefined ? {} : { stack: args.stack as 'stacked' | 'grouped' }),
+          ...(args.facet === undefined ? {} : { facet: args.facet }),
           ...(args.title === undefined ? {} : { title: args.title }),
           ...(exec.signal === undefined ? {} : { signal: exec.signal }),
         })
