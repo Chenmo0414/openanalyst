@@ -88,7 +88,7 @@ export function ChartNodeView({ node }: ChatNodeViewProps<'openanalyst-chart'>):
       el: HTMLElement,
       spec: unknown,
       options?: { actions?: boolean; renderer?: 'canvas' | 'svg' },
-    ) => Promise<{ finalize: () => void }>
+    ) => Promise<{ finalize: () => void; view: { resize: () => { runAsync: () => Promise<unknown> } } }>
 
     void import('vega-embed')
       .then(async (module) => {
@@ -97,6 +97,13 @@ export function ChartNodeView({ node }: ChatNodeViewProps<'openanalyst-chart'>):
         // union of call signatures is not callable, so pin it to the one
         // this plugin uses.
         const embed = module.default as unknown as EmbedFn
+        // vega-embed styles the host inline-block, which collapses to 0px
+        // when the pane laid out at zero width (background tab, hidden panel)
+        // — and `width: 'container'` then measures 0. Pin the host to a real
+        // block box before embedding, and re-measure on every size change so
+        // a chart born in a hidden pane heals itself when it becomes visible.
+        element.style.display = 'block'
+        element.style.width = '100%'
         const result = await embed(element, vegaLite, {
           actions: false,
           renderer: 'canvas',
@@ -105,7 +112,14 @@ export function ChartNodeView({ node }: ChatNodeViewProps<'openanalyst-chart'>):
           result.finalize()
           return
         }
-        finalize = (): void => { result.finalize() }
+        const observer = new ResizeObserver(() => {
+          void result.view.resize().runAsync()
+        })
+        observer.observe(element)
+        finalize = (): void => {
+          observer.disconnect()
+          result.finalize()
+        }
       })
       .catch((cause: unknown) => {
         if (disposed) return

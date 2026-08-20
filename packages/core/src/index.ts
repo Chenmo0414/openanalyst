@@ -14,6 +14,7 @@ export { profileDataset, classifyType } from './profile.js'
 export type { ProfileOptions } from './profile.js'
 
 export { buildChart, suggestCharts, ChartError, MAX_POINTS } from './chart.js'
+export { CHART_CONFIG, CATEGORICAL, SERIES_1 } from './theme.js'
 export type { Aggregate, ChartRequest } from './chart.js'
 
 export { attachDatabase, inferDatabaseKind, redactSecrets } from './database.js'

@@ -48,8 +48,9 @@ describe('buildHtmlReport', () => {
     const { html } = report
     expect(html).toContain('<!doctype html>')
     expect(html).toContain('Sales 2026 review')
-    // Profile table and the known quality findings.
-    expect(html).toContain('<code>revenue</code>')
+    // Profile table, stat tiles, and the known quality findings.
+    expect(html).toContain('class="col-name">revenue')
+    expect(html).toContain('class="tiles"')
     expect(html).toContain('exact duplicates')
     // Charts are embedded as inline SVG, not referenced. Self-contained means
     // no element FETCHES anything: no src/href pointing at a URL. (SVG's

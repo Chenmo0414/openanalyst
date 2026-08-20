@@ -12,6 +12,7 @@
 import type { AnalystEngine } from './engine.js'
 import { quoteIdentifier } from './sql.js'
 import { classifyType } from './profile.js'
+import { CHART_CONFIG } from './theme.js'
 import type {
   ChartKind,
   ChartSpec,
@@ -55,17 +56,24 @@ function vegaType(kind: ReturnType<typeof classifyType>): 'quantitative' | 'temp
   return 'nominal'
 }
 
-function markFor(kind: ChartKind): JsonValue {
+/** Point-marker ceiling for lines: beyond this, markers are noise, not marks. */
+const LINE_MARKER_MAX_POINTS = 60
+
+function markFor(kind: ChartKind, pointCount: number): JsonValue {
+  // Visual specifics (widths, radii, colors, sizes) live in CHART_CONFIG so
+  // every renderer inherits the same theme; the mark carries only semantics.
   switch (kind) {
     case 'bar':
     case 'histogram':
       return { type: 'bar', tooltip: true }
     case 'line':
-      return { type: 'line', point: true, tooltip: true }
+      // Selective marking: a sparse series gets per-point markers, a dense one
+      // keeps only the line — markers on 200 points read as texture, not data.
+      return { type: 'line', point: pointCount <= LINE_MARKER_MAX_POINTS, tooltip: true }
     case 'area':
-      return { type: 'area', tooltip: true, line: true, opacity: 0.75 }
+      return { type: 'area', line: true, tooltip: true }
     case 'scatter':
-      return { type: 'point', tooltip: true, filled: true, size: 60 }
+      return { type: 'point', tooltip: true }
   }
 }
 
@@ -203,11 +211,12 @@ export async function buildChart(
     $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
     title,
     data: { values: rows },
-    mark: markFor(request.kind),
+    mark: markFor(request.kind, rows.length),
     encoding: buildEncoding(request, columns, aggregate),
     width: 'container',
     height: 280,
     autosize: { type: 'fit', contains: 'padding' },
+    config: CHART_CONFIG,
   }
 
   return { kind: request.kind, title, vegaLite, rowCount: rows.length }
