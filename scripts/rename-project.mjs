@@ -1,0 +1,121 @@
+/**
+ * One-shot project rename.
+ *
+ * The project identity is spelled six different ways across the tree, and a
+ * partial rename is worse than none: a stale plugin id fails to load, a stale
+ * event prefix silently drops charts, a stale DOM attribute breaks the
+ * workbench. This script rewrites every form together, or not at all.
+ *
+ * The forms, and why each exists:
+ *   openanalyst        npm names, the cordis plugin id, the session event
+ *                      prefix (`openanalyst/chart`), the client bundle id
+ *                      registered with __ModuleLoader__, and the
+ *                      `openanalyst-chart` CSS class / node kinds
+ *   OpenAnalyst        display name in titles, READMEs, and doc comments
+ *   @openanalyst/      the npm scope for core and report
+ *   data-oa-           workbench DOM anchors (`data-oa-chart`, `data-oa-kind`)
+ *   OA_SHOOT_          screenshot script environment variables
+ *   .openanalyst       the MCP server's default chart output directory
+ *
+ * Usage:
+ *   node scripts/rename-project.mjs <new-lower-name> <NewDisplayName> [--apply]
+ *
+ * Without --apply it prints what would change and touches nothing.
+ *
+ * NOTE ON SESSION LOGS: the event prefix is durable data. Sessions recorded
+ * under the old prefix keep it, and after a rename the plugin no longer
+ * recognizes them, so their charts stop rendering. That is acceptable only
+ * while the only such logs are local test sessions — i.e. before publishing.
+ */
+
+import { readFileSync, writeFileSync, renameSync, existsSync } from 'node:fs'
+import { readdirSync, statSync } from 'node:fs'
+import { join, extname } from 'node:path'
+
+const [, , lower, display, applyFlag] = process.argv
+const APPLY = applyFlag === '--apply'
+
+if (lower === undefined || display === undefined) {
+  console.error('usage: node scripts/rename-project.mjs <new-lower-name> <NewDisplayName> [--apply]')
+  process.exit(1)
+}
+if (!/^[a-z][a-z0-9-]{1,20}$/.test(lower)) {
+  console.error(`invalid npm-style name: ${lower}`)
+  process.exit(1)
+}
+
+/** Short DOM/env prefix derived from the new name (e.g. "lens" -> "ln"). */
+const shortPrefix = (lower.replace(/[^a-z]/g, '').slice(0, 1) + lower.replace(/[^a-z]/g, '').slice(-1))
+
+/** Ordered: longer/more specific patterns first so they win. */
+const RULES = [
+  ['@openanalyst/', `@${lower}/`],
+  ['openanalyst-mcp-server', `${lower}-mcp-server`],
+  ['openanalyst-chart', `${lower}-chart`],
+  ['openanalyst-attach', `${lower}-attach`],
+  ['openanalyst-report', `${lower}-report`],
+  ['openanalyst-workbench', `${lower}-workbench`],
+  ['openanalyst-client', `${lower}-client`],
+  ['.openanalyst', `.${lower}`],
+  ['data-oa-', `data-${shortPrefix}-`],
+  ['OA_SHOOT_', `${shortPrefix.toUpperCase()}_SHOOT_`],
+  ['OpenAnalyst', display],
+  ['openanalyst', lower],
+]
+
+const SKIP_DIRS = new Set(['node_modules', '.git', 'lib', 'dist', '.vite'])
+/** This script carries every old form in its own rule table; rewriting it
+ *  would destroy the table and make a second run a no-op. */
+const SELF = 'rename-project.mjs'
+const TEXT_EXT = new Set(['.ts', '.tsx', '.mjs', '.js', '.json', '.yml', '.yaml', '.md', '.html', '.css'])
+
+/** Walk the repo, skipping build output and vendored trees. */
+function* walk(dir) {
+  for (const entry of readdirSync(dir)) {
+    if (SKIP_DIRS.has(entry)) continue
+    const path = join(dir, entry)
+    const stat = statSync(path)
+    if (stat.isDirectory()) yield* walk(path)
+    else if (TEXT_EXT.has(extname(entry)) && entry !== SELF) yield path
+  }
+}
+
+let changedFiles = 0
+let changedHits = 0
+
+for (const path of walk('.')) {
+  const before = readFileSync(path, 'utf-8')
+  let after = before
+  for (const [from, to] of RULES) after = after.replaceAll(from, to)
+  if (after === before) continue
+
+  let hits = 0
+  for (const [from] of RULES) hits += before.split(from).length - 1
+  changedFiles += 1
+  changedHits += hits
+  console.log(`${APPLY ? 'rewrite' : 'would rewrite'}  ${path}  (${hits} hits)`)
+  if (APPLY) writeFileSync(path, after, 'utf-8')
+}
+
+// The screenshot assets and the demo report keep neutral names; only the logo
+// and any name-bearing asset filenames would move, and there are none today.
+const RENAMES = []
+for (const [from, to] of RENAMES) {
+  if (!existsSync(from)) continue
+  console.log(`${APPLY ? 'move' : 'would move'}  ${from} -> ${to}`)
+  if (APPLY) renameSync(from, to)
+}
+
+console.log(
+  `\n${APPLY ? 'renamed' : 'DRY RUN —'} ${changedHits} occurrence(s) in ${changedFiles} file(s).`,
+)
+console.log(`short DOM/env prefix: data-${shortPrefix}-  /  ${shortPrefix.toUpperCase()}_SHOOT_`)
+if (!APPLY) console.log('re-run with --apply to write.')
+else {
+  console.log('\nNEXT, by hand:')
+  console.log('  1. rename the workspace directory and the GitHub repo')
+  console.log('  2. pnpm install (relink workspace names)')
+  console.log('  3. re-link the plugin into the dsh profile (the junction points at the old path)')
+  console.log('  4. pnpm -r run build && pnpm -r run test')
+  console.log('  5. delete stale local sessions — their events still carry the old prefix')
+}
