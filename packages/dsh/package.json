@@ -83,11 +83,11 @@
     "@deepseek-ai/dsh-tools": "^0.1.0-rc.8",
     "@types/node": "^22.10.0",
     "@types/react": "~18.3.1",
+    "esbuild": "^0.24.0",
     "react": "^18.2.0",
     "typescript": "^5.7.2",
     "vega-embed": "^6.29.0",
-    "vitest": "^3.0.5",
-    "esbuild": "^0.24.0"
+    "vitest": "^3.0.5"
   },
   "repository": {
     "type": "git",

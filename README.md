@@ -38,7 +38,8 @@ data_attach     →  register a CSV / Parquet / JSON / XLSX file as a queryable 
 data_attach_db  →  attach PostgreSQL / MySQL / SQLite read-only and list its tables
 data_profile    →  types, missing values, exact distinct counts, outliers, quality issues, chart ideas
 data_query      →  one read-only SQL statement, results as lossless JSON
-data_chart      →  bar / line / scatter / histogram / area / heatmap / boxplot — with color
+data_chart      →  bar / line / scatter / histogram / area / heatmap / boxplot (Vega-Lite,
+                   interactive) + sankey / sunburst / treemap / gauge (ECharts) — with color
                    series, stacked/grouped layout, facet small multiples; line & scatter pan/zoom
 data_report     →  a self-contained HTML report (profile + charts as inline SVG); prints to PDF
 data_sources    →  what is currently attached
@@ -60,6 +61,13 @@ sources, a chart gallery with click-to-scroll, and generated reports:
 
 <p align="center">
   <img src="docs/assets/workbench-panel.png" alt="The Tukey workbench panel open over a dsh conversation: data sources, chart gallery with locate buttons, and the report archive" width="100%" />
+</p>
+
+Both engines in one conversation — heatmap and boxplot drawn live by Vega-Lite,
+sankey and treemap rendered on the host by ECharts:
+
+<p align="center">
+  <img src="docs/assets/chart-echarts.png" alt="A dsh conversation showing a Vega-Lite heatmap and boxplot alongside an ECharts sankey and treemap" width="100%" />
 </p>
 
 More in-conversation chart kinds (same theme, exported from a live session):
@@ -100,7 +108,17 @@ Parquet and JSON directly with full-file type inference. Only IQR outliers,
 duplicate-row detection, and the judgement about what is worth flagging are
 written by hand.
 
-**Charts are Vega-Lite specs carried on session events.** The harness tool-card
+**Two chart engines, chosen per kind — and the client bundles one.** Vega-Lite
+owns the exploratory kinds: its grammar keeps the spec short and the browser
+half renders it live and interactive. ECharts covers the shapes Vega-Lite has
+no grammar for at all — flow (sankey), hierarchy (sunburst, treemap), and a
+single-value KPI (gauge). Bundling ECharts in the browser too would add ~600 kB
+to a single-file plugin bundle every session downloads, chart or not, so those
+kinds are rendered to SVG on the host and travel as markup inside the event;
+the spec rides along, so a client that does speak ECharts can render it live.
+Measured cost to the browser bundle: **0 kB**.
+
+**Charts are specs carried on session events.** The harness tool-card
 kinds are a closed set — `generic`, `terminal`, `diff`, `search`, `web` — with
 no chart member, so a tool result can only ever degrade a chart to text. A real
 chart has to come from a *conversation node*, which the client half registers.
@@ -128,7 +146,7 @@ pnpm -r run build
 pnpm -r run test
 ```
 
-74 tests: 46 over the core (SQL policy, JSON conversion, profiling with exact
+89 tests: 58 over the core (SQL policy, JSON conversion, profiling with exact
 distinct counts, charts, and live PostgreSQL/MySQL connector tests that
 auto-skip without the Docker fixtures), 5 over the report builder, 14 driving
 the real dsh plugin tools end to end against DuckDB (including per-agent

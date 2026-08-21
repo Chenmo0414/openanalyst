@@ -44,7 +44,12 @@ const SCRIPT = [
   {
     kind: 'tool',
     name: 'data_chart',
-    args: { source: 'sales_2026', kind: 'bar', x: 'region', y: 'revenue', color: 'product', stack: 'grouped' },
+    args: { source: 'sales_2026', kind: 'sankey', x: 'region', y: 'product', value: 'revenue' },
+  },
+  {
+    kind: 'tool',
+    name: 'data_chart',
+    args: { source: 'sales_2026', kind: 'treemap', x: 'region', y: 'product', value: 'revenue' },
   },
   {
     kind: 'tool',

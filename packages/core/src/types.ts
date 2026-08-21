@@ -88,20 +88,45 @@ export interface QueryResult {
   readonly truncated: boolean
 }
 
-export type ChartKind = 'bar' | 'line' | 'scatter' | 'histogram' | 'area' | 'heatmap' | 'boxplot'
+export type ChartKind =
+  | 'bar'
+  | 'line'
+  | 'scatter'
+  | 'histogram'
+  | 'area'
+  | 'heatmap'
+  | 'boxplot'
+  // Kinds Vega-Lite has no grammar for; these are built as ECharts options.
+  | 'sankey'
+  | 'sunburst'
+  | 'treemap'
+  | 'gauge'
+
+/**
+ * Which renderer reads a chart's `spec`.
+ *
+ * Two engines, chosen per kind rather than per taste: Vega-Lite's grammar
+ * makes the statistical kinds concise and gives the browser half a live,
+ * interactive chart, while ECharts covers flow/hierarchy/KPI shapes Vega-Lite
+ * cannot express at all. The engine tag travels in the spec and in the session
+ * event, so a renderer never has to guess.
+ */
+export type ChartEngine = 'vega-lite' | 'echarts'
 
 export interface ChartSpec {
   readonly kind: ChartKind
   readonly title: string
+  readonly engine: ChartEngine
   /**
-   * A complete Vega-Lite v5 specification with the data inlined.
+   * A complete renderer specification with the data inlined — a Vega-Lite v5
+   * spec or an ECharts option, per `engine`.
    *
    * This is deliberately one self-contained JSON value: a dsh conversation
    * node persists it as a whole-value checkpoint, so replaying the session log
    * rebuilds the identical chart as a pure function of the event — no clock,
-   * no random, no live state. See docs/ARCHITECTURE.md.
+   * no random, no live state.
    */
-  readonly vegaLite: JsonValue
+  readonly spec: JsonValue
   readonly rowCount: number
 }
 

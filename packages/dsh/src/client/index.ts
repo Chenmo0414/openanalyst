@@ -76,11 +76,28 @@ const chartDefinition: ConversationNodeDefinition<ChartState> = {
 
 export function ChartNodeView({ node }: ChatNodeViewProps<'tukey-chart'>): ReactElement {
   const host = useRef<HTMLDivElement | null>(null)
-  const { vegaLite, title, source, rowCount } = node.data
+  const { engine, spec, svg, title, source, rowCount } = node.data
 
   useEffect(() => {
     const element = host.current
     if (element === null) return
+
+    // Engines this bundle does not carry arrive pre-rendered from the host.
+    // The markup is produced by our own renderer, never by user input, so
+    // inlining it is not an injection surface.
+    if (engine !== 'vega-lite') {
+      element.innerHTML = svg ?? ''
+      const drawn = element.querySelector('svg')
+      if (drawn !== null) {
+        drawn.setAttribute('width', '100%')
+        drawn.removeAttribute('height')
+        drawn.style.maxWidth = '100%'
+        drawn.style.height = 'auto'
+      } else {
+        element.textContent = `No rendered image for this ${engine} chart.`
+      }
+      return
+    }
 
     let disposed = false
     let finalize: (() => void) | undefined
@@ -111,7 +128,7 @@ export function ChartNodeView({ node }: ChatNodeViewProps<'tukey-chart'>): React
         // a chart born in a hidden pane heals itself when it becomes visible.
         element.style.display = 'block'
         element.style.width = '100%'
-        const result = await embed(element, vegaLite, {
+        const result = await embed(element, spec, {
           // The (…) menu keeps only PNG/SVG export — a chart someone can save
           // is a chart someone can share. Source/editor links stay off.
           actions: { export: true, source: false, compiled: false, editor: false },
@@ -141,7 +158,7 @@ export function ChartNodeView({ node }: ChatNodeViewProps<'tukey-chart'>): React
       disposed = true
       finalize?.()
     }
-  }, [vegaLite])
+  }, [engine, spec, svg])
 
   return createElement(
     'figure',

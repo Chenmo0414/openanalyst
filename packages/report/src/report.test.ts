@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { AnalystEngine, buildChart } from '@tukey/core'
 import { buildHtmlReport } from './html.js'
-import { chartToSvg } from './svg.js'
+import { chartToSvg, renderChart } from './svg.js'
 
 const SALES_CSV = fileURLToPath(new URL('../../../examples/sales-2026.csv', import.meta.url))
 
@@ -25,15 +25,55 @@ describe('chartToSvg', () => {
       x: 'region',
       y: 'revenue',
     })
-    const before = JSON.stringify(chart.vegaLite)
-    const svg = await chartToSvg(chart.vegaLite)
+    const before = JSON.stringify(chart.spec)
+    const svg = await chartToSvg(chart.spec)
 
     expect(svg).toContain('<svg')
     expect(svg.length).toBeGreaterThan(2000)
     // The regression the MCP tests caught: vega parse() stamps Symbol(vega_id)
     // onto shared data rows. JSON text equality proves no enumerable change;
     // the deep clone inside chartToSvg guards the symbol case.
-    expect(JSON.stringify(chart.vegaLite)).toBe(before)
+    expect(JSON.stringify(chart.spec)).toBe(before)
+  })
+})
+
+describe('ECharts rendering', () => {
+  it('renders an ECharts kind to SVG without a canvas or a browser', async () => {
+    const chart = await buildChart(engine, {
+      source: 'sales_2026',
+      kind: 'sankey',
+      x: 'region',
+      y: 'product',
+      value: 'revenue',
+    })
+    expect(chart.engine).toBe('echarts')
+    const before = JSON.stringify(chart.spec)
+    const svg = await renderChart(chart)
+
+    expect(svg).toContain('<svg')
+    expect(svg.length).toBeGreaterThan(1000)
+    // ECharts' setOption must not mutate the option — the spec is a durable
+    // whole-value checkpoint that gets re-rendered on every replay.
+    expect(JSON.stringify(chart.spec)).toBe(before)
+  })
+
+  it('dispatches on the chart engine, not the caller', async () => {
+    const vegaChart = await buildChart(engine, {
+      source: 'sales_2026',
+      kind: 'bar',
+      x: 'region',
+      y: 'revenue',
+    })
+    const gauge = await buildChart(engine, {
+      source: 'sales_2026',
+      kind: 'gauge',
+      x: 'region',
+      value: 'revenue',
+      aggregate: 'avg',
+    })
+    for (const chart of [vegaChart, gauge]) {
+      expect(await renderChart(chart)).toContain('<svg')
+    }
   })
 })
 

@@ -22,7 +22,7 @@ import {
   type ColumnProfile,
   type DatasetProfile,
 } from '@tukey/core'
-import { chartToSvg } from './svg.js'
+import { renderChart } from './svg.js'
 
 export interface ReportOptions {
   /** Dataset aliases to include. Every attached file source when omitted. */
@@ -260,7 +260,7 @@ export async function buildHtmlReport(
         ...request,
         ...(options.signal === undefined ? {} : { signal: options.signal }),
       })
-      sections.push(chartSection(chart, await chartToSvg(chart.vegaLite)))
+      sections.push(chartSection(chart, await renderChart(chart)))
       chartCount += 1
     }
   }

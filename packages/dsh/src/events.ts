@@ -11,7 +11,7 @@
  */
 
 import { KNOWN_SESSION_EVENT_TYPES } from '@deepseek-ai/dsh-session'
-import type { ChartKind, JsonValue } from '@tukey/core'
+import type { ChartEngine, ChartKind, JsonValue } from '@tukey/core'
 
 /** Every event type this plugin appends to session logs. */
 export const PLUGIN_EVENT_TYPES = ['tukey/attach', 'tukey/chart', 'tukey/report'] as const
@@ -53,14 +53,30 @@ export interface ChartEventData {
   readonly source: string
   /** Data points inlined in the spec. */
   readonly rowCount: number
+  /** Which renderer reads `spec`. */
+  readonly engine: ChartEngine
   /**
-   * A complete Vega-Lite v5 specification with its data inlined.
+   * A complete renderer specification with its data inlined — a Vega-Lite v5
+   * spec or an ECharts option, per `engine`.
    *
-   * Kept as one opaque JSON value on purpose: the renderer hands it to
-   * Vega-Lite verbatim, so adding an encoding channel in the core needs no
-   * change here and no migration of already-logged events.
+   * Kept as one opaque JSON value on purpose: the renderer hands it over
+   * verbatim, so adding an encoding channel in the core needs no change here
+   * and no migration of already-logged events.
    */
-  readonly vegaLite: JsonValue
+  readonly spec: JsonValue
+  /**
+   * Server-rendered SVG, present only for engines the browser half does not
+   * bundle (today: ECharts).
+   *
+   * The browser half ships Vega alone. Bundling ECharts too would add ~600 kB
+   * to a single-file plugin bundle that every session downloads, chart or not,
+   * to gain flow/hierarchy/KPI shapes that exploratory analysis rarely needs.
+   * Rendering those on the host instead keeps the client cost at zero; the
+   * trade is that such a chart is a static picture rather than an interactive
+   * view. The `spec` still travels alongside, so a client that DOES speak
+   * ECharts can render it live and ignore this field.
+   */
+  readonly svg?: string
 }
 
 /** Durable record of one attached dataset. */

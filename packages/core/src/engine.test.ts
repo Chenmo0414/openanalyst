@@ -174,7 +174,7 @@ describe('buildChart', () => {
     expect(chart.kind).toBe('bar')
     expect(chart.rowCount).toBe(4)
 
-    const spec = chart.vegaLite as Record<string, JsonValue>
+    const spec = chart.spec as Record<string, JsonValue>
     expect(spec['mark']).toEqual({ type: 'bar', tooltip: true })
 
     const data = spec['data'] as { values: readonly JsonValue[] }
@@ -194,13 +194,13 @@ describe('buildChart', () => {
       x: 'order_date',
       y: 'revenue',
     })
-    const encoding = (chart.vegaLite as Record<string, Record<string, Record<string, JsonValue>>>)['encoding']
+    const encoding = (chart.spec as Record<string, Record<string, Record<string, JsonValue>>>)['encoding']
     expect(encoding?.['x']?.['type']).toBe('temporal')
   })
 
   it('bins a histogram and needs no y column', async () => {
     const chart = await buildChart(engine, { source: 'sales', kind: 'histogram', x: 'revenue' })
-    const encoding = (chart.vegaLite as Record<string, Record<string, Record<string, JsonValue>>>)['encoding']
+    const encoding = (chart.spec as Record<string, Record<string, Record<string, JsonValue>>>)['encoding']
     expect(encoding?.['x']?.['bin']).toEqual({ maxbins: 30 })
     expect(encoding?.['y']?.['aggregate']).toBe('count')
   })
@@ -212,8 +212,8 @@ describe('buildChart', () => {
       x: 'product',
       y: 'units',
     })
-    const roundTripped = JSON.parse(JSON.stringify(chart.vegaLite)) as unknown
-    expect(roundTripped).toEqual(chart.vegaLite)
+    const roundTripped = JSON.parse(JSON.stringify(chart.spec)) as unknown
+    expect(roundTripped).toEqual(chart.spec)
   })
 
   it('rejects a column that is not in the dataset', async () => {
@@ -261,7 +261,7 @@ describe('new chart kinds', () => {
     expect(chart.rowCount).toBeGreaterThanOrEqual(12)
     expect(chart.rowCount).toBeLessThanOrEqual(16)
 
-    const spec = chart.vegaLite as Record<string, JsonValue>
+    const spec = chart.spec as Record<string, JsonValue>
     expect(spec['mark']).toEqual({ type: 'rect', tooltip: true })
     const encoding = spec['encoding'] as Record<string, Record<string, JsonValue>>
     expect(encoding['color']?.['type']).toBe('quantitative')
@@ -283,7 +283,7 @@ describe('new chart kinds', () => {
       y: 'revenue',
     })
     expect(chart.rowCount).toBe(482)
-    const spec = chart.vegaLite as Record<string, JsonValue>
+    const spec = chart.spec as Record<string, JsonValue>
     expect(spec['mark']).toEqual({ type: 'boxplot', extent: 1.5 })
     const encoding = spec['encoding'] as Record<string, Record<string, JsonValue>>
     expect(encoding['y']?.['type']).toBe('quantitative')
@@ -306,7 +306,7 @@ describe('new chart kinds', () => {
     })
     expect(first.rowCount).toBe(100)
     // Seeded reservoir: byte-identical across runs, so replay stays pure.
-    expect(first.vegaLite).toEqual(second.vegaLite)
+    expect(first.spec).toEqual(second.spec)
   })
 
   it('lays grouped bars side by side via xOffset', async () => {
@@ -318,7 +318,7 @@ describe('new chart kinds', () => {
       color: 'product',
       stack: 'grouped',
     })
-    const encoding = (chart.vegaLite as Record<string, Record<string, Record<string, JsonValue>>>)['encoding']
+    const encoding = (chart.spec as Record<string, Record<string, Record<string, JsonValue>>>)['encoding']
     expect(encoding?.['xOffset']?.['field']).toBe('product')
   })
 
@@ -330,7 +330,7 @@ describe('new chart kinds', () => {
       y: 'revenue',
       facet: 'region',
     })
-    const spec = chart.vegaLite as Record<string, JsonValue>
+    const spec = chart.spec as Record<string, JsonValue>
     const encoding = spec['encoding'] as Record<string, Record<string, JsonValue>>
     expect(encoding['facet']?.['field']).toBe('region')
     expect(encoding['facet']?.['columns']).toBe(3)
@@ -340,8 +340,94 @@ describe('new chart kinds', () => {
   it('adds pan/zoom params to continuous charts only', async () => {
     const line = await buildChart(wide, { source: 'sales_2026', kind: 'line', x: 'order_date', y: 'revenue' })
     const bar = await buildChart(wide, { source: 'sales_2026', kind: 'bar', x: 'region', y: 'revenue' })
-    expect((line.vegaLite as Record<string, unknown>)['params']).toBeDefined()
-    expect((bar.vegaLite as Record<string, unknown>)['params']).toBeUndefined()
+    expect((line.spec as Record<string, unknown>)['params']).toBeDefined()
+    expect((bar.spec as Record<string, unknown>)['params']).toBeUndefined()
+  })
+
+  it('builds a sankey as an ECharts option with prefixed node names', async () => {
+    const chart = await buildChart(wide, {
+      source: 'sales_2026',
+      kind: 'sankey',
+      x: 'region',
+      y: 'product',
+      value: 'revenue',
+    })
+    expect(chart.engine).toBe('echarts')
+    expect(chart.rowCount).toBeGreaterThan(0)
+
+    const spec = chart.spec as Record<string, JsonValue>
+    const series = (spec['series'] as Record<string, JsonValue>[])[0]
+    expect(series?.['type']).toBe('sankey')
+    const links = series?.['links'] as { source: string; target: string; value: number }[]
+    // Side-prefixed so a value appearing on both axes cannot form a self-loop.
+    expect(links[0]?.source.startsWith('region: ')).toBe(true)
+    expect(links[0]?.target.startsWith('product: ')).toBe(true)
+    expect(links.every((link) => link.value > 0)).toBe(true)
+  })
+
+  it('nests a sunburst when a second category is given', async () => {
+    const chart = await buildChart(wide, {
+      source: 'sales_2026',
+      kind: 'sunburst',
+      x: 'region',
+      y: 'product',
+      value: 'revenue',
+    })
+    const series = ((chart.spec as Record<string, JsonValue>)['series'] as Record<string, JsonValue>[])[0]
+    expect(series?.['type']).toBe('sunburst')
+    const data = series?.['data'] as { name: string; value: number; children?: unknown[] }[]
+    expect(data).toHaveLength(4)
+    expect(data[0]?.children?.length).toBeGreaterThan(0)
+  })
+
+  it('builds a treemap flat when no second category is given', async () => {
+    const chart = await buildChart(wide, {
+      source: 'sales_2026',
+      kind: 'treemap',
+      x: 'region',
+      value: 'revenue',
+    })
+    const series = ((chart.spec as Record<string, JsonValue>)['series'] as Record<string, JsonValue>[])[0]
+    expect(series?.['type']).toBe('treemap')
+    const data = series?.['data'] as { children?: unknown[] }[]
+    expect(data[0]?.children).toBeUndefined()
+  })
+
+  it('gauges one aggregate against the column range', async () => {
+    const chart = await buildChart(wide, {
+      source: 'sales_2026',
+      kind: 'gauge',
+      x: 'region',
+      value: 'revenue',
+      aggregate: 'avg',
+    })
+    expect(chart.rowCount).toBe(1)
+    const series = ((chart.spec as Record<string, JsonValue>)['series'] as Record<string, JsonValue>[])[0]
+    expect(series?.['type']).toBe('gauge')
+    const reading = (series?.['data'] as { value: number }[])[0]?.value
+    const min = series?.['min'] as number
+    const max = series?.['max'] as number
+    expect(reading).toBeGreaterThan(min)
+    expect(reading).toBeLessThanOrEqual(max)
+  })
+
+  it('keeps ECharts options JSON-pure for replay', async () => {
+    const chart = await buildChart(wide, {
+      source: 'sales_2026',
+      kind: 'sankey',
+      x: 'region',
+      y: 'product',
+      value: 'revenue',
+    })
+    expect(JSON.parse(JSON.stringify(chart.spec))).toEqual(chart.spec)
+  })
+
+  it('requires a value column for every ECharts kind', async () => {
+    for (const kind of ['sankey', 'sunburst', 'treemap', 'gauge'] as const) {
+      await expect(
+        buildChart(wide, { source: 'sales_2026', kind, x: 'region', y: 'product' }),
+      ).rejects.toThrow(/needs a numeric/)
+    }
   })
 
   it('rejects faceted heatmaps and boxplots', async () => {

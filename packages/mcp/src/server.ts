@@ -36,7 +36,7 @@ import { renderChartSvg } from './render.js'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { resolve as resolvePath } from 'node:path'
 
-const CHART_KINDS = ['bar', 'line', 'scatter', 'histogram', 'area', 'heatmap', 'boxplot'] as const
+const CHART_KINDS = ['bar', 'line', 'scatter', 'histogram', 'area', 'heatmap', 'boxplot', 'sankey', 'sunburst', 'treemap', 'gauge'] as const
 const AGGREGATES = ['sum', 'avg', 'count', 'min', 'max', 'none'] as const
 
 /** Where rendered SVGs land unless the client overrides per call. */
@@ -233,7 +233,13 @@ export function createServer(options: ServerOptions = {}): McpServer {
             'Column for the y axis. Required for every kind except histogram. For heatmap the ' +
               'second category axis; for boxplot the numeric column.',
           ),
-        value: z.string().optional().describe('Heatmap only: numeric column aggregated into each cell.'),
+        value: z
+          .string()
+          .optional()
+          .describe(
+            'The measure column. heatmap: what each cell aggregates. sankey: the flow weight. ' +
+              'sunburst/treemap: the leaf size. gauge: the value shown. Required for all five.',
+          ),
         aggregate: z
           .enum(AGGREGATES)
           .optional()
@@ -269,7 +275,7 @@ export function createServer(options: ServerOptions = {}): McpServer {
           ...(facet === undefined ? {} : { facet }),
           ...(title === undefined ? {} : { title }),
         })
-        const rendered = await renderChartSvg(chart.vegaLite, chartDir, chart.title)
+        const rendered = await renderChartSvg(chart.spec, chartDir, chart.title, chart.engine)
         return ok(
           `Rendered a ${chart.kind} chart "${chart.title}" (${chart.rowCount} data points) to ${rendered.svgPath}`,
           {
@@ -277,7 +283,7 @@ export function createServer(options: ServerOptions = {}): McpServer {
             title: chart.title,
             rowCount: chart.rowCount,
             svgPath: rendered.svgPath,
-            vegaLite: chart.vegaLite,
+            engine: chart.engine, spec: chart.spec,
           },
         )
       } catch (error) {

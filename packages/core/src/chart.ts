@@ -13,13 +13,24 @@ import type { AnalystEngine } from './engine.js'
 import { quoteIdentifier } from './sql.js'
 import { classifyType } from './profile.js'
 import { CHART_CONFIG } from './theme.js'
+import { ChartError } from './chart-error.js'
+import { buildEchartsChart } from './chart-echarts.js'
 import type {
+  ChartEngine,
   ChartKind,
   ChartSpec,
   ColumnProfile,
   DatasetProfile,
   JsonValue,
 } from './types.js'
+
+/** Kinds built as ECharts options rather than Vega-Lite specs. */
+const ECHARTS_KINDS = new Set<ChartKind>(['sankey', 'sunburst', 'treemap', 'gauge'])
+
+/** Which engine renders a kind. */
+export function engineFor(kind: ChartKind): ChartEngine {
+  return ECHARTS_KINDS.has(kind) ? 'echarts' : 'vega-lite'
+}
 
 /** Cap on inlined data points, so one chart event stays a reasonable size. */
 export const MAX_POINTS = 2000
@@ -41,7 +52,10 @@ export interface ChartRequest {
    * column whose distribution is drawn per x category.
    */
   readonly y?: string
-  /** Numeric column a heatmap cell aggregates. Heatmap only. */
+  /**
+   * The measure column. Heatmap: what each cell aggregates. Sankey: the flow
+   * weight. Sunburst/treemap: the size of each leaf. Gauge: the value shown.
+   */
   readonly value?: string
   /** How to combine y (or `value`) within each group. Defaults to `sum` for bar/line/area/heatmap, `none` for scatter/boxplot. */
   readonly aggregate?: Aggregate
@@ -62,9 +76,7 @@ export interface ChartRequest {
   readonly signal?: AbortSignal
 }
 
-export class ChartError extends Error {
-  override readonly name = 'ChartError'
-}
+export { ChartError } from './chart-error.js'
 
 function vegaType(kind: ReturnType<typeof classifyType>): 'quantitative' | 'temporal' | 'nominal' {
   if (kind === 'numeric') return 'quantitative'
@@ -75,7 +87,10 @@ function vegaType(kind: ReturnType<typeof classifyType>): 'quantitative' | 'temp
 /** Point-marker ceiling for lines: beyond this, markers are noise, not marks. */
 const LINE_MARKER_MAX_POINTS = 60
 
-function markFor(kind: ChartKind, pointCount: number): JsonValue {
+/** Vega-Lite kinds only; the ECharts kinds never reach this path. */
+type VegaKind = Exclude<ChartKind, 'sankey' | 'sunburst' | 'treemap' | 'gauge'>
+
+function markFor(kind: VegaKind, pointCount: number): JsonValue {
   // Visual specifics (widths, radii, colors, sizes) live in CHART_CONFIG so
   // every renderer inherits the same theme; the mark carries only semantics.
   switch (kind) {
@@ -137,13 +152,20 @@ function resolveColumns(engine: AnalystEngine, request: ChartRequest): ResolvedC
     return { name: match.name, sqlType: match.sqlType }
   }
 
-  if (request.kind !== 'histogram' && request.y === undefined) {
+  const echarts = engineFor(request.kind) === 'echarts'
+
+  // Vega-Lite kinds are an x/y grammar; the ECharts kinds each have their own
+  // required shape, checked by their builders.
+  if (!echarts && request.kind !== 'histogram' && request.y === undefined) {
     throw new ChartError(`A ${request.kind} chart needs a y column.`)
   }
   if (request.kind === 'heatmap' && request.value === undefined) {
     throw new ChartError('A heatmap needs a numeric `value` column to aggregate into each cell.')
   }
-  if (request.facet !== undefined && (request.kind === 'heatmap' || request.kind === 'boxplot')) {
+  if (echarts && request.value === undefined) {
+    throw new ChartError(`A ${request.kind} chart needs a numeric \`value\` column.`)
+  }
+  if (request.facet !== undefined && (request.kind === 'heatmap' || request.kind === 'boxplot' || echarts)) {
     throw new ChartError(`Faceting is not supported for ${request.kind} charts.`)
   }
 
@@ -301,6 +323,17 @@ function defaultTitle(request: ChartRequest, columns: ResolvedColumns, aggregate
   if (request.kind === 'boxplot') {
     return `Distribution of ${columns.y?.name ?? ''} by ${columns.x.name}`
   }
+  if (request.kind === 'sankey') {
+    return `${columns.value?.name ?? ''} flow: ${columns.x.name} → ${columns.y?.name ?? ''}`
+  }
+  if (request.kind === 'sunburst' || request.kind === 'treemap') {
+    const inner = columns.y === null ? '' : ` / ${columns.y.name}`
+    return `${columns.value?.name ?? ''} by ${columns.x.name}${inner}`
+  }
+  if (request.kind === 'gauge') {
+    const measure = aggregate === 'none' ? 'sum' : aggregate
+    return `${measure}(${columns.value?.name ?? ''})`
+  }
   const measure =
     columns.y === null
       ? ''
@@ -320,8 +353,33 @@ export async function buildChart(
   const aggregate = request.aggregate ?? defaultAggregate(request.kind)
   const limit = Math.min(request.limit ?? MAX_POINTS, MAX_POINTS)
 
-  const rows = await engine.queryInternal(buildSql(request, columns, limit), request.signal)
   const title = request.title ?? defaultTitle(request, columns, aggregate)
+
+  if (engineFor(request.kind) === 'echarts') {
+    const built = await buildEchartsChart(
+      engine,
+      request.kind as 'sankey' | 'sunburst' | 'treemap' | 'gauge',
+      request.source,
+      {
+        x: columns.x.name,
+        y: columns.y === null ? null : columns.y.name,
+        value: columns.value === null ? null : columns.value.name,
+      },
+      title,
+      aggregate,
+      limit,
+      request.signal,
+    )
+    return {
+      kind: request.kind,
+      title,
+      engine: 'echarts',
+      spec: built.spec,
+      rowCount: built.rowCount,
+    }
+  }
+
+  const rows = await engine.queryInternal(buildSql(request, columns, limit), request.signal)
 
   // Faceted specs size per panel; `container` would size the whole grid to
   // one panel's box and overflow.
@@ -331,7 +389,7 @@ export async function buildChart(
     $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
     title,
     data: { values: rows },
-    mark: markFor(request.kind, rows.length),
+    mark: markFor(request.kind as VegaKind, rows.length),
     encoding: buildEncoding(request, columns, aggregate),
     width: faceted ? 210 : 'container',
     height: faceted ? 160 : 280,
@@ -345,7 +403,7 @@ export async function buildChart(
       : {}),
   }
 
-  return { kind: request.kind, title, vegaLite, rowCount: rows.length }
+  return { kind: request.kind, title, engine: 'vega-lite', spec: vegaLite, rowCount: rows.length }
 }
 
 /**

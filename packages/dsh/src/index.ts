@@ -25,7 +25,7 @@ import {
   type ChartKind,
   type DatabaseKind,
 } from '@tukey/core'
-import { buildHtmlReport } from '@tukey/report'
+import { buildHtmlReport, renderChart } from '@tukey/report'
 import { registerPluginEvents } from './events.ts'
 
 export type * from './events.ts'
@@ -33,7 +33,7 @@ export type * from './events.ts'
 export const name = 'tukey'
 export const inject = ['tools']
 
-const CHART_KINDS = ['bar', 'line', 'scatter', 'histogram', 'area', 'heatmap', 'boxplot'] as const
+const CHART_KINDS = ['bar', 'line', 'scatter', 'histogram', 'area', 'heatmap', 'boxplot', 'sankey', 'sunburst', 'treemap', 'gauge'] as const
 const AGGREGATES = ['sum', 'avg', 'count', 'min', 'max', 'none'] as const
 
 /** Reusable schema fragment for a column profile row. */
@@ -411,7 +411,9 @@ export function apply(ctx: Context): void {
         },
         value: {
           type: 'string',
-          description: 'Heatmap only: numeric column aggregated into each cell.',
+          description:
+            'The measure column. heatmap: what each cell aggregates. sankey: the flow weight. ' +
+            'sunburst/treemap: the leaf size. gauge: the value shown. Required for all five.',
         },
         aggregate: {
           type: 'string',
@@ -475,12 +477,19 @@ export function apply(ctx: Context): void {
         // the canonical value; it simply has no conversation to draw into.
         const displayed = exec.agent !== undefined
         if (exec.agent !== undefined) {
+          // ECharts kinds are rasterized here rather than in the browser, so
+          // the client bundle carries one chart runtime instead of two — see
+          // ChartEventData.svg for the trade.
+          const svg =
+            chart.engine === 'echarts' ? await renderChart(chart, 720) : undefined
           exec.agent.session.append('tukey/chart', {
             title: chart.title,
             kind: chart.kind,
             source: args.source,
             rowCount: chart.rowCount,
-            vegaLite: chart.vegaLite,
+            engine: chart.engine,
+            spec: chart.spec,
+            ...(svg === undefined ? {} : { svg }),
           })
         }
 

@@ -31,7 +31,8 @@ data_attach     →  把 CSV / Parquet / JSON / XLSX 文件注册为可查询的
 data_attach_db  →  只读接入 PostgreSQL / MySQL / SQLite 并列出其表
 data_profile    →  类型、缺失值、精确基数、离群点、数据质量问题、图表建议
 data_query      →  一条只读 SQL（DuckDB 方言），结果为无损 JSON
-data_chart      →  bar / line / scatter / histogram / area / heatmap / boxplot，
+data_chart      →  bar / line / scatter / histogram / area / heatmap / boxplot（Vega-Lite，
+                   可交互）+ sankey / sunburst / treemap / gauge（ECharts）；
                    支持 color 分组、stacked/grouped、facet 小倍数；line/scatter 可拖拽缩放
 data_report     →  自包含 HTML 报告（画像 + 内嵌 SVG 图表），浏览器可直接打印为 PDF
 data_sources    →  当前已接入的数据集
@@ -51,6 +52,12 @@ data_sources    →  当前已接入的数据集
 
 <p align="center">
   <img src="docs/assets/workbench-panel.png" alt="Tukey 工作台面板：数据源、带定位按钮的图表库、报告存档" width="100%" />
+</p>
+
+两个引擎同屏——热力图与箱线图由 Vega-Lite 实时绘制，桑基与矩形树由 ECharts 在宿主端渲染：
+
+<p align="center">
+  <img src="docs/assets/chart-echarts.png" alt="dsh 对话中同时显示 Vega-Lite 热力图/箱线图与 ECharts 桑基图/矩形树图" width="100%" />
 </p>
 
 更多对话内图型（同一主题，同样从真实会话导出）：
@@ -89,7 +96,14 @@ min/max/avg/std/四分位/基数/空值率，并直接读取 CSV、Parquet、JSO
 基数在 ≤200 万行时用精确计数——HyperLogLog 估计会把 4 个类目报成 3，
 对分析工具这是错误答案，不是近似。
 
-**图表是承载在会话事件上的 Vega-Lite spec。** dsh 的工具卡片种类是封闭集合
+**两个图表引擎，按图型选择——而客户端只打包一个。** Vega-Lite 负责探索性图型：
+语法简短，浏览器端实时可交互。ECharts 负责 Vega-Lite 根本没有语法的形状——
+流向（桑基）、层级（旭日、矩形树）、单值 KPI（仪表盘）。若把 ECharts 也打进浏览器，
+单文件插件包会多约 600 KB，而这个包**每个会话都要下载，无论有没有图**；所以这些图型
+在宿主端渲染成 SVG、以标记形式随事件传输，spec 也一并携带，懂 ECharts 的客户端可以
+自己实时渲染。实测浏览器端增重：**0 KB**。
+
+**图表是承载在会话事件上的 spec。** dsh 的工具卡片种类是封闭集合
 （`generic`、`terminal`、`diff`、`search`、`web`），没有图表成员，所以真正的图
 只能来自 *conversation node*——由插件的浏览器半边注册。而 conversation node
 要求视图是持久事件的**纯函数**（无时钟、无随机、无活状态），数据内联的
@@ -112,7 +126,7 @@ pnpm -r run build
 pnpm -r run test
 ```
 
-74 个测试：core 46 个（SQL 安全策略、JSON 转换、精确基数画像、图表，以及
+89 个测试：core 58 个（SQL 安全策略、JSON 转换、精确基数画像、图表，以及
 无 Docker 环境自动跳过的 PostgreSQL/MySQL 实连测试），report 5 个，dsh 插件
 14 个（端到端驱动真实工具与 DuckDB，含按 agent 隔离），MCP 9 个（走 SDK 内存
 传输的协议级往返，另有 stdio 进程冒烟脚本）。针对运行中 `dsh web` 的实机验证脚本在

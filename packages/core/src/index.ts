@@ -13,7 +13,14 @@ export type { AttachOptions, EngineOptions, QueryOptions } from './engine.js'
 export { profileDataset, classifyType } from './profile.js'
 export type { ProfileOptions } from './profile.js'
 
-export { buildChart, suggestCharts, ChartError, MAX_POINTS } from './chart.js'
+export { buildChart, suggestCharts, ChartError, MAX_POINTS, engineFor } from './chart.js'
+export {
+  sankeyOption,
+  sunburstOption,
+  treemapOption,
+  gaugeOption,
+} from './echarts.js'
+export type { FlowLink, HierarchyNode } from './echarts.js'
 export { CHART_CONFIG, CATEGORICAL, SERIES_1 } from './theme.js'
 export type { Aggregate, ChartRequest } from './chart.js'
 
@@ -24,6 +31,7 @@ export { assertReadOnlyStatement, SqlPolicyError, toAlias } from './sql.js'
 export { toJsonValue, toJsonRow, asNumber } from './json.js'
 
 export type {
+  ChartEngine,
   ChartKind,
   ChartSpec,
   ColumnKind,

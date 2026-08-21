@@ -105,7 +105,7 @@ describe('the analysis chain over the wire', () => {
     // Four bars, one per region, must exist as path marks.
     expect(svg.length).toBeGreaterThan(2000)
 
-    const spec = chart.structuredContent?.['vegaLite'] as Record<string, unknown>
+    const spec = chart.structuredContent?.['spec'] as Record<string, unknown>
     expect(spec['$schema']).toContain('vega-lite')
     expect(JSON.parse(JSON.stringify(spec))).toEqual(spec)
   })

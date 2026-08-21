@@ -251,17 +251,22 @@ describe('data_chart', () => {
       kind: string
       source: string
       rowCount: number
-      vegaLite: Record<string, unknown>
+      engine: string
+      spec: Record<string, unknown>
+      svg?: string
     }
     expect(data.kind).toBe('bar')
     expect(data.source).toBe('sales')
     expect(data.title).toBe(result.title)
+    expect(data.engine).toBe('vega-lite')
+    // A Vega-Lite chart renders live in the browser, so it ships no SVG.
+    expect(data.svg).toBeUndefined()
 
     // The payload must be a whole-value checkpoint: everything needed to
     // redraw the chart on replay, with no reference to live state.
-    expect(data.vegaLite['$schema']).toContain('vega-lite')
-    expect(data.vegaLite['mark']).toEqual({ type: 'bar', tooltip: true })
-    const inlined = data.vegaLite['data'] as { values: unknown[] }
+    expect(data.spec['$schema']).toContain('vega-lite')
+    expect(data.spec['mark']).toEqual({ type: 'bar', tooltip: true })
+    const inlined = data.spec['data'] as { values: unknown[] }
     expect(inlined.values).toHaveLength(4)
   })
 
@@ -278,6 +283,28 @@ describe('data_chart', () => {
 
     const payload = appended[0]?.data
     expect(JSON.parse(JSON.stringify(payload))).toEqual(payload)
+  })
+
+  it('ships an ECharts chart as pre-rendered SVG so the client bundles one engine', async () => {
+    const appended: AppendedEvent[] = []
+    await callAs('data_attach', { path: SALES_CSV }, 'echarts-agent', appended)
+    appended.length = 0
+
+    await callAs(
+      'data_chart',
+      { source: 'sales', kind: 'sankey', x: 'region', y: 'product', value: 'revenue' },
+      'echarts-agent',
+      appended,
+    )
+
+    const data = appended[0]?.data as { engine: string; spec: unknown; svg?: string }
+    expect(data.engine).toBe('echarts')
+    expect(data.svg).toBeDefined()
+    expect(data.svg).toContain('<svg')
+    // The spec travels alongside the picture, so a client that speaks ECharts
+    // can render it live and ignore the SVG.
+    expect(data.spec).toBeDefined()
+    expect(JSON.parse(JSON.stringify(data))).toEqual(data)
   })
 
   it('still returns the canonical value when there is no agent to display it', async () => {
