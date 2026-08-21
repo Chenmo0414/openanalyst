@@ -1,7 +1,7 @@
-# @openanalyst/report
+# @tukey/report
 
 Chart rendering and self-contained HTML reports for
-[OpenAnalyst](https://github.com/Chenmo0414/openanalyst).
+[Tukey](https://github.com/Chenmo0414/tukey).
 
 Two things, both dependency-light and server-side:
 
@@ -14,16 +14,16 @@ Two things, both dependency-light and server-side:
   prints to PDF from any browser.
 
 ```ts
-import { AnalystEngine } from '@openanalyst/core'
-import { buildHtmlReport, chartToSvg } from '@openanalyst/report'
+import { AnalystEngine } from '@tukey/core'
+import { buildHtmlReport, chartToSvg } from '@tukey/report'
 
 const engine = await AnalystEngine.create()
 await engine.attach('sales.csv')
 const { html, chartCount } = await buildHtmlReport(engine, { title: 'Q3 review' })
 ```
 
-Split from `@openanalyst/core` so hosts that render charts themselves (the
+Split from `@tukey/core` so hosts that render charts themselves (the
 DeepSeek Harness browser half draws them with Vega in the page) never carry the
 server-side vega dependency.
 
-Full docs: https://github.com/Chenmo0414/openanalyst
+Full docs: https://github.com/Chenmo0414/tukey

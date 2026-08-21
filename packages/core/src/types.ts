@@ -1,5 +1,5 @@
 /**
- * Domain types for OpenAnalyst core.
+ * Domain types for Tukey core.
  *
  * Every value that crosses the package boundary is lossless JSON: no BigInt,
  * no DuckDB wrapper objects, no class instances. Adapters (dsh plugin, MCP

@@ -1,6 +1,6 @@
 /**
- * @openanalyst/report — chart rendering (Vega-Lite -> SVG, pure JS) and
- * self-contained HTML reports over `@openanalyst/core`.
+ * @tukey/report — chart rendering (Vega-Lite -> SVG, pure JS) and
+ * self-contained HTML reports over `@tukey/core`.
  *
  * Split from the core so hosts that render charts themselves (the dsh browser
  * half) never carry the server-side vega dependency.

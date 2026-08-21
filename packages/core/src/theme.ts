@@ -1,5 +1,5 @@
 /**
- * The OpenAnalyst chart theme, as a Vega-Lite `config` block.
+ * The Tukey chart theme, as a Vega-Lite `config` block.
  *
  * One definition serves every renderer — the dsh conversation node, the
  * server-side SVG in reports, and any MCP client that draws the spec itself —

@@ -1,7 +1,7 @@
 /**
- * OpenAnalyst — the DeepSeek Harness browser half.
+ * Tukey — the DeepSeek Harness browser half.
  *
- * Renders `openanalyst/chart` events as real charts inside the conversation.
+ * Renders `tukey/chart` events as real charts inside the conversation.
  *
  * Why a conversation node rather than a tool card: the harness tool-card kinds
  * are a closed set (`generic`, `terminal`, `diff`, `search`, `web`) with no
@@ -13,7 +13,7 @@
  * own `seq`, and the payload is a whole-value checkpoint, so replaying a session
  * log reproduces every chart exactly — no clock, no random, no live state.
  *
- * @module openanalyst/client
+ * @module tukey/client
  */
 
 import { createElement, useEffect, useRef, type ReactElement } from 'react'
@@ -27,13 +27,13 @@ import type { ChatNodeViewProps } from '@deepseek-ai/dsh-client-ui-conversation/
 import type { AttachEventData, ChartEventData, ReportEventData } from '../events.ts'
 import { WorkbenchHeaderAction } from './workbench.tsx'
 
-const NODE_KIND = 'openanalyst-chart'
+const NODE_KIND = 'tukey-chart'
 
 declare module '@deepseek-ai/dsh-client-ui-conversation/client' {
   interface ChatNodeDataMap {
-    'openanalyst-chart': ChartEventData
-    'openanalyst-attach': AttachEventData
-    'openanalyst-report': ReportEventData
+    'tukey-chart': ChartEventData
+    'tukey-attach': AttachEventData
+    'tukey-report': ReportEventData
   }
 }
 
@@ -48,10 +48,10 @@ const chartDefinition: ConversationNodeDefinition<ChartState> = {
   target: 'chat',
   // One event is one chart, so the event's own seq is a stable, replay-safe id.
   match: (event) =>
-    event.type === 'openanalyst/chart' ? { id: String(event.seq), role: 'start' } : null,
+    event.type === 'tukey/chart' ? { id: String(event.seq), role: 'start' } : null,
   start: (_context, match) => {
-    if (match.event.type !== 'openanalyst/chart') {
-      throw new Error('openanalyst-chart requires an openanalyst/chart event')
+    if (match.event.type !== 'tukey/chart') {
+      throw new Error('tukey-chart requires an tukey/chart event')
     }
     return match.event.data
   },
@@ -74,7 +74,7 @@ const chartDefinition: ConversationNodeDefinition<ChartState> = {
   },
 }
 
-export function ChartNodeView({ node }: ChatNodeViewProps<'openanalyst-chart'>): ReactElement {
+export function ChartNodeView({ node }: ChatNodeViewProps<'tukey-chart'>): ReactElement {
   const host = useRef<HTMLDivElement | null>(null)
   const { vegaLite, title, source, rowCount } = node.data
 
@@ -146,9 +146,9 @@ export function ChartNodeView({ node }: ChatNodeViewProps<'openanalyst-chart'>):
   return createElement(
     'figure',
     {
-      className: 'openanalyst-chart',
+      className: 'tukey-chart',
       // Scroll anchor for the workbench gallery; the id is the chart event's seq.
-      'data-oa-chart': node.id,
+      'data-tk-chart': node.id,
       style: { margin: '0.5rem 0' },
     },
     createElement('div', { ref: host }),
@@ -168,7 +168,7 @@ export function ChartNodeView({ node }: ChatNodeViewProps<'openanalyst-chart'>):
  * context and throws when read from a header slot).
  */
 function headlessDefinition<Data>(
-  kind: 'openanalyst-attach' | 'openanalyst-report',
+  kind: 'tukey-attach' | 'tukey-report',
   eventType: string,
 ): ConversationNodeDefinition<Data> {
   return {
@@ -201,28 +201,28 @@ function markerView(kind: string) {
     return createElement('span', {
       hidden: true,
       style: { display: 'none' },
-      'data-oa-kind': kind,
-      'data-oa-id': node.id,
-      'data-oa-json': JSON.stringify(node.data),
+      'data-tk-kind': kind,
+      'data-tk-id': node.id,
+      'data-tk-json': JSON.stringify(node.data),
     })
   }
 }
 
-export const name = 'openanalyst-client'
+export const name = 'tukey-client'
 export const inject = ['conversationEvents', 'slots']
 
 export function apply(ctx: ClientContext): void {
   ctx.conversationEvents.register(chartDefinition)
-  ctx.conversationEvents.register(headlessDefinition<AttachEventData>('openanalyst-attach', 'openanalyst/attach'))
-  ctx.conversationEvents.register(headlessDefinition<ReportEventData>('openanalyst-report', 'openanalyst/report'))
+  ctx.conversationEvents.register(headlessDefinition<AttachEventData>('tukey-attach', 'tukey/attach'))
+  ctx.conversationEvents.register(headlessDefinition<ReportEventData>('tukey-report', 'tukey/report'))
   ctx.slots.inject('conversation.chat.node', () => [
     ctx.slots.register({ name: 'conversation.chat.node', key: NODE_KIND }, ChartNodeView),
     ctx.slots.register(
-      { name: 'conversation.chat.node', key: 'openanalyst-attach' },
+      { name: 'conversation.chat.node', key: 'tukey-attach' },
       markerView('attach') as never,
     ),
     ctx.slots.register(
-      { name: 'conversation.chat.node', key: 'openanalyst-report' },
+      { name: 'conversation.chat.node', key: 'tukey-report' },
       markerView('report') as never,
     ),
   ])
@@ -231,7 +231,7 @@ export function apply(ctx: ClientContext): void {
   // this plugin's own nodes render, so it depends on nothing internal.
   ctx.slots.inject('conversation.session.header.utilities', () =>
     ctx.slots.register(
-      { name: 'conversation.session.header.utilities', id: 'openanalyst-workbench' },
+      { name: 'conversation.session.header.utilities', id: 'tukey-workbench' },
       WorkbenchHeaderAction as never,
     ),
   )

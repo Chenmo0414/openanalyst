@@ -1,8 +1,10 @@
-<p align="center"><img src="docs/assets/logo.svg" alt="OpenAnalyst logo" width="96" height="96" /></p>
-<h1 align="center">OpenAnalyst</h1>
+<p align="center"><img src="docs/assets/logo.svg" alt="Tukey logo" width="96" height="96" /></p>
+<h1 align="center">Tukey</h1>
 
-<p align="center"><b>把你的编码 Agent 变成数据分析师。</b><br/>
-接入一个 CSV，自动生成数据画像，用 SQL 提问，图表直接渲染在对话里。</p>
+<p align="center"><b>图基 —— 开源版「数据分析师」，直接住进你的编码 Agent。</b><br/>
+挂上 CSV 或 Postgres 数据库，自动画像、只读 SQL 提问、图表直接画在对话里。</p>
+
+<p align="center"><sub>名字取自 John Tukey：探索性数据分析、箱线图，以及这个画像器正在跑的 1.5×IQR 离群规则，都是他的发明。</sub></p>
 
 <p align="center">
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat" /></a>
@@ -39,8 +41,8 @@ data_sources    →  当前已接入的数据集
 
 | 宿主 | 包名 | 图表交付方式 |
 |---|---|---|
-| DeepSeek Harness 插件 | `openanalyst` | 对话内实时渲染（conversation node + Vega canvas） |
-| MCP server（Claude Code / Codex / Cursor / 任意 MCP 客户端） | `openanalyst-mcp-server` | SVG 文件 + `structuredContent` 里的完整 Vega-Lite spec |
+| DeepSeek Harness 插件 | `tukey` | 对话内实时渲染（conversation node + Vega canvas） |
+| MCP server（Claude Code / Codex / Cursor / 任意 MCP 客户端） | `tukey-mcp-server` | SVG 文件 + `structuredContent` 里的完整 Vega-Lite spec |
 
 在 dsh 的 Code Mode（PTC 模式）下，全部工具也可以在 `run_code` 程序里以
 `await tools.data_*(args)` 链式调用，一段程序内完成 接入 → 画像 → 查询 → 出图。
@@ -48,7 +50,7 @@ data_sources    →  当前已接入的数据集
 **工作台**——会话头部的浮层面板：本会话的数据源、可点击定位的图表库、报告存档：
 
 <p align="center">
-  <img src="docs/assets/workbench-panel.png" alt="OpenAnalyst 工作台面板：数据源、带定位按钮的图表库、报告存档" width="100%" />
+  <img src="docs/assets/workbench-panel.png" alt="Tukey 工作台面板：数据源、带定位按钮的图表库、报告存档" width="100%" />
 </p>
 
 更多对话内图型（同一主题，同样从真实会话导出）：
@@ -64,20 +66,20 @@ data_sources    →  当前已接入的数据集
 DeepSeek Harness：
 
 ```bash
-dsh plugin --profile web add openanalyst
+dsh plugin --profile web add tukey
 ```
 
 Claude Code（或任意 MCP 客户端，stdio）：
 
 ```bash
-claude mcp add openanalyst -- npx -y openanalyst-mcp-server
+claude mcp add tukey -- npx -y tukey-mcp-server
 ```
 
 ## 架构
 
 三个决定塑造了这套代码。
 
-**引擎对宿主一无所知。** `@openanalyst/core` 输入路径和 SQL，输出无损 JSON，
+**引擎对宿主一无所知。** `@tukey/core` 输入路径和 SQL，输出无损 JSON，
 不引用任何 dsh、MCP 或 CLI 类型。这是同一份分析能力能同时进入 dsh 和
 Claude Code / Codex / Cursor、而不用维护第二套实现的根本原因。
 
@@ -95,11 +97,11 @@ Vega-Lite spec 恰好就是可逐字节重放的一段纯 JSON。选 Vega-Lite �
 重放规则，而不是因为它流行。
 
 ```
-@openanalyst/core            引擎、画像、数据库连接、图表 spec   （宿主无关）
-  ├── @openanalyst/report    Vega-Lite → SVG（纯 JS）+ 自包含 HTML 报告
-  ├── openanalyst            dsh 宿主半边：7 个工具 + 图表事件
+@tukey/core            引擎、画像、数据库连接、图表 spec   （宿主无关）
+  ├── @tukey/report    Vega-Lite → SVG（纯 JS）+ 自包含 HTML 报告
+  ├── tukey            dsh 宿主半边：7 个工具 + 图表事件
   │     └── ./client         dsh 浏览器半边：conversation node + Vega canvas
-  └── openanalyst-mcp-server stdio MCP server：同样 7 个工具，图表输出 SVG
+  └── tukey-mcp-server stdio MCP server：同样 7 个工具，图表输出 SVG
 ```
 
 ## 开发

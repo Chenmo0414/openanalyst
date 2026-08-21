@@ -23,7 +23,7 @@
 import { build } from 'esbuild'
 
 /** The plugin id, i.e. the package name. Must match the boot-graph row. */
-const ID = 'openanalyst'
+const ID = 'tukey'
 
 /**
  * `PLATFORM_MODULES` from @deepseek-ai/dsh-client-web/src/platform.ts, plus the

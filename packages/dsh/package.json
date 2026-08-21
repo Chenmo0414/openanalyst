@@ -1,5 +1,5 @@
 {
-  "name": "openanalyst",
+  "name": "tukey",
   "version": "0.1.0",
   "description": "Turn DeepSeek Harness into a data analyst: attach CSV/Parquet/JSON, auto-profile, query, and render real charts inside the conversation.",
   "license": "MIT",
@@ -53,8 +53,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@openanalyst/core": "workspace:^",
-    "@openanalyst/report": "workspace:^"
+    "@tukey/core": "workspace:^",
+    "@tukey/report": "workspace:^"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "*",
@@ -91,12 +91,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Chenmo0414/openanalyst.git",
+    "url": "git+https://github.com/Chenmo0414/tukey.git",
     "directory": "packages/dsh"
   },
-  "homepage": "https://github.com/Chenmo0414/openanalyst",
+  "homepage": "https://github.com/Chenmo0414/tukey",
   "bugs": {
-    "url": "https://github.com/Chenmo0414/openanalyst/issues"
+    "url": "https://github.com/Chenmo0414/tukey/issues"
   },
   "author": "Chenmo0414",
   "publishConfig": {

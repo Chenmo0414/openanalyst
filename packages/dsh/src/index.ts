@@ -1,14 +1,14 @@
 /**
- * OpenAnalyst — the DeepSeek Harness host half.
+ * Tukey — the DeepSeek Harness host half.
  *
- * Registers five model-facing tools over `@openanalyst/core`. Every tool is
+ * Registers five model-facing tools over `@tukey/core`. Every tool is
  * also reachable from Code Mode as `await tools.data_*(args)` at no extra cost,
  * so the model can chain attach -> profile -> query -> chart inside one program
  * instead of spending a round trip per step. That is why each `output.schema`
  * is written as a programmatic API — handles and fields, with the prose kept in
  * `output.render`.
  *
- * @module openanalyst
+ * @module tukey
  */
 
 import type { Context } from '@deepseek-ai/cordis'
@@ -24,13 +24,13 @@ import {
   suggestCharts,
   type ChartKind,
   type DatabaseKind,
-} from '@openanalyst/core'
-import { buildHtmlReport } from '@openanalyst/report'
+} from '@tukey/core'
+import { buildHtmlReport } from '@tukey/report'
 import { registerPluginEvents } from './events.ts'
 
 export type * from './events.ts'
 
-export const name = 'openanalyst'
+export const name = 'tukey'
 export const inject = ['tools']
 
 const CHART_KINDS = ['bar', 'line', 'scatter', 'histogram', 'area', 'heatmap', 'boxplot'] as const
@@ -198,7 +198,7 @@ export function apply(ctx: Context): void {
         )
         const columns = handle.columns.map((column) => ({ name: column.name, sqlType: column.sqlType }))
         // Durable breadcrumb for the workbench's data-source list.
-        exec.agent?.session.append('openanalyst/attach', {
+        exec.agent?.session.append('tukey/attach', {
           alias: handle.alias,
           origin: handle.origin,
           rowCount: handle.rowCount,
@@ -475,7 +475,7 @@ export function apply(ctx: Context): void {
         // the canonical value; it simply has no conversation to draw into.
         const displayed = exec.agent !== undefined
         if (exec.agent !== undefined) {
-          exec.agent.session.append('openanalyst/chart', {
+          exec.agent.session.append('tukey/chart', {
             title: chart.title,
             kind: chart.kind,
             source: args.source,
@@ -673,7 +673,7 @@ export function apply(ctx: Context): void {
         await writeFile(target, report.html, 'utf-8')
         // Durable breadcrumb: the workbench panel folds these events into the
         // session's report archive, so listing needs no host round trip.
-        exec.agent?.session.append('openanalyst/report', {
+        exec.agent?.session.append('tukey/report', {
           path: target,
           title: report.title,
           sources: [...report.sources],

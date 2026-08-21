@@ -1,5 +1,5 @@
 {
-  "name": "@openanalyst/core",
+  "name": "@tukey/core",
   "version": "0.1.0",
   "description": "Dataset profiling, SQL query and Vega-Lite chart generation over DuckDB. Agent-agnostic.",
   "license": "MIT",
@@ -33,12 +33,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Chenmo0414/openanalyst.git",
+    "url": "git+https://github.com/Chenmo0414/tukey.git",
     "directory": "packages/core"
   },
-  "homepage": "https://github.com/Chenmo0414/openanalyst",
+  "homepage": "https://github.com/Chenmo0414/tukey",
   "bugs": {
-    "url": "https://github.com/Chenmo0414/openanalyst/issues"
+    "url": "https://github.com/Chenmo0414/tukey/issues"
   },
   "author": "Chenmo0414",
   "publishConfig": {

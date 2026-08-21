@@ -17,7 +17,7 @@
 import { createServer } from 'node:http'
 
 const PORT = Number(process.argv[2] ?? 8471)
-const CSV = 'D:/Code/openanalyst/examples/sales-2026.csv'
+const CSV = 'D:/Code/tukey/examples/sales-2026.csv'
 
 /** One script entry per expected model request, in arrival order. */
 const SCRIPT = [
@@ -49,7 +49,7 @@ const SCRIPT = [
   {
     kind: 'tool',
     name: 'data_report',
-    args: { path: 'D:/Code/openanalyst/examples/wb-report.html', title: 'Workbench demo report' },
+    args: { path: 'D:/Code/tukey/examples/wb-report.html', title: 'Workbench demo report' },
   },
   {
     kind: 'text',

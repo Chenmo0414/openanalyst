@@ -1,10 +1,10 @@
 /**
- * The OpenAnalyst workbench: a session-header button that opens a floating
+ * The Tukey workbench: a session-header button that opens a floating
  * panel listing this session's data sources, charts, and generated reports.
  *
  * The model is collected from the DOM this plugin's own conversation nodes
- * render — chart figures carry `data-oa-chart`, and the attach/report marker
- * nodes carry their payload in `data-oa-json`. A MutationObserver keeps the
+ * render — chart figures carry `data-tk-chart`, and the attach/report marker
+ * nodes carry their payload in `data-tk-json`. A MutationObserver keeps the
  * panel current as the conversation grows. Self-contained by design: reading
  * the conversation snapshot from a header slot is not supported by the host
  * (`snapshot.chat` is guarded by the chat render context), and the DOM these
@@ -40,7 +40,7 @@ interface Model {
 const EMPTY: Model = { sources: [], charts: [], reports: [] }
 
 function parseJsonAttr<T>(element: Element): T | null {
-  const raw = element.getAttribute('data-oa-json')
+  const raw = element.getAttribute('data-tk-json')
   if (raw === null) return null
   try {
     return JSON.parse(raw) as T
@@ -52,20 +52,20 @@ function parseJsonAttr<T>(element: Element): T | null {
 /** Collect the workbench model from the plugin's own marker/figure DOM. */
 function collect(): Model {
   const sources = new Map<string, SourceRow>()
-  for (const marker of document.querySelectorAll('[data-oa-kind="attach"]')) {
+  for (const marker of document.querySelectorAll('[data-tk-kind="attach"]')) {
     const data = parseJsonAttr<SourceRow>(marker)
     if (data !== null) sources.set(data.alias, data)
   }
 
   const charts: ChartRow[] = []
-  for (const figure of document.querySelectorAll('figure.openanalyst-chart[data-oa-chart]')) {
-    const id = figure.getAttribute('data-oa-chart') ?? ''
+  for (const figure of document.querySelectorAll('figure.tukey-chart[data-tk-chart]')) {
+    const id = figure.getAttribute('data-tk-chart') ?? ''
     const title = figure.querySelector('figcaption')?.textContent?.split('·')[0]?.trim() ?? `chart ${id}`
     charts.push({ id, title })
   }
 
   const reports: ReportRow[] = []
-  for (const marker of document.querySelectorAll('[data-oa-kind="report"]')) {
+  for (const marker of document.querySelectorAll('[data-tk-kind="report"]')) {
     const data = parseJsonAttr<ReportRow>(marker)
     if (data !== null) reports.push(data)
   }
@@ -113,7 +113,7 @@ const ROW_STYLE: React.CSSProperties = {
 }
 
 function scrollToChart(id: string): void {
-  const target = document.querySelector(`[data-oa-chart="${CSS.escape(id)}"]`)
+  const target = document.querySelector(`[data-tk-chart="${CSS.escape(id)}"]`)
   target?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
 
@@ -152,7 +152,7 @@ export function WorkbenchHeaderAction(): ReactNode {
       {
         type: 'button',
         onClick: () => setOpen((value) => !value),
-        title: 'OpenAnalyst workbench',
+        title: 'Tukey workbench',
         style: {
           display: 'inline-flex',
           alignItems: 'center',
@@ -173,7 +173,7 @@ export function WorkbenchHeaderAction(): ReactNode {
       ? h(
           'div',
           { style: PANEL_STYLE },
-          h('div', { style: { fontWeight: 600, fontSize: 13 } }, 'OpenAnalyst · 工作台'),
+          h('div', { style: { fontWeight: 600, fontSize: 13 } }, 'Tukey · 工作台'),
 
           model.sources.length > 0
             ? h(

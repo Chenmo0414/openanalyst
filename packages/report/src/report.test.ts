@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { AnalystEngine, buildChart } from '@openanalyst/core'
+import { AnalystEngine, buildChart } from '@tukey/core'
 import { buildHtmlReport } from './html.js'
 import { chartToSvg } from './svg.js'
 

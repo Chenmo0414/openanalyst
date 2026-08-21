@@ -195,7 +195,7 @@ describe('per-agent isolation', () => {
 })
 
 describe('data_report', () => {
-  it('writes a self-contained HTML file and logs an openanalyst/report event', async () => {
+  it('writes a self-contained HTML file and logs an tukey/report event', async () => {
     const { mkdtempSync, readFileSync, rmSync } = await import('node:fs')
     const { tmpdir } = await import('node:os')
     const { join } = await import('node:path')
@@ -213,7 +213,7 @@ describe('data_report', () => {
       expect(html).toContain('dsh report')
       expect(html).toContain('<svg')
 
-      const event = appended.find((entry) => entry.type === 'openanalyst/report')
+      const event = appended.find((entry) => entry.type === 'tukey/report')
       expect(event).toBeDefined()
       const data = event?.data as { path: string; title: string; chartCount: number }
       expect(data.title).toBe('dsh report')
@@ -226,7 +226,7 @@ describe('data_report', () => {
 })
 
 describe('data_chart', () => {
-  it('emits one openanalyst/chart event carrying a complete Vega-Lite spec', async () => {
+  it('emits one tukey/chart event carrying a complete Vega-Lite spec', async () => {
     // Isolation means the attach and the chart must share one agent.
     const appended: AppendedEvent[] = []
     await callAs('data_attach', { path: SALES_CSV }, 'chart-agent', appended)
@@ -244,7 +244,7 @@ describe('data_chart', () => {
 
     expect(appended).toHaveLength(1)
     const event = appended[0]
-    expect(event?.type).toBe('openanalyst/chart')
+    expect(event?.type).toBe('tukey/chart')
 
     const data = event?.data as {
       title: string

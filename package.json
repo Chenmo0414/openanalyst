@@ -1,5 +1,5 @@
 {
-  "name": "openanalyst-root",
+  "name": "tukey-root",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -21,6 +21,6 @@
     "vitest": "^3.0.5"
   },
   "dependencies": {
-    "openanalyst": "workspace:*"
+    "tukey": "workspace:*"
   }
 }

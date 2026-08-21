@@ -1,4 +1,4 @@
-# openanalyst — DeepSeek Harness plugin
+# tukey — DeepSeek Harness plugin
 
 Turn DeepSeek Harness into a data analyst: attach CSV/Parquet/JSON/XLSX, get an
 automatic profile, run read-only SQL, and see Vega-Lite charts rendered live
@@ -7,7 +7,7 @@ inside the conversation (as conversation nodes, not text).
 ## Install
 
 ```bash
-dsh plugin --profile web add openanalyst
+dsh plugin --profile web add tukey
 ```
 
 Tools: `data_attach` · `data_profile` · `data_query` · `data_chart` ·
@@ -15,4 +15,4 @@ Tools: `data_attach` · `data_profile` · `data_query` · `data_chart` ·
 `await tools.data_*(args)`.
 
 Screenshots, architecture, and the live-verification record:
-https://github.com/Chenmo0414/openanalyst
+https://github.com/Chenmo0414/tukey

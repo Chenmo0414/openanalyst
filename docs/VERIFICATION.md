@@ -7,7 +7,7 @@ Date: 2026-08-20 · dsh `0.1.0-rc.8` · Windows 10 · Node v24.14.1
 The full chain, inside a real `dsh web` session (not a unit-test double):
 
 1. **Plugin install & load** — host half activates from the web profile, no boot errors.
-2. **Client half discovery** — `/plugins/openanalyst/client.js` appears in
+2. **Client half discovery** — `/plugins/tukey/client.js` appears in
    `window.__DSH_BOOT__.entries` with the `dsh.client.inject` edges, is served
    with HTTP 200, and its factory registers with `window.__ModuleLoader__`
    (probe: a second execution reports *duplicate factory registration*, proving
@@ -15,7 +15,7 @@ The full chain, inside a real `dsh web` session (not a unit-test double):
 3. **Tool execution** — a scripted mock LLM drove one conversation turn through
    `data_attach → data_profile → data_chart(bar) → data_chart(line) → text`.
    All five requests completed in order; the session shows zero failed steps.
-4. **Chart rendering** — two `figure.openanalyst-chart` conversation nodes
+4. **Chart rendering** — two `figure.tukey-chart` conversation nodes
    rendered, each holding a Vega canvas (1260×490, 54% non-background pixels).
    Exports: `docs/assets/chart-bar-region.png`, `chart-line-trend.png`.
 
@@ -23,8 +23,8 @@ The full chain, inside a real `dsh web` session (not a unit-test double):
 
 ```bash
 # 1. Install the plugin into the web profile (verified equivalent: a junction
-#    at $DSH_HOME/profiles/web/node_modules/openanalyst -> packages/dsh)
-pnpm exec dsh plugin --profile web add D:\Code\openanalyst\packages\dsh
+#    at $DSH_HOME/profiles/web/node_modules/tukey -> packages/dsh)
+pnpm exec dsh plugin --profile web add D:\Code\tukey\packages\dsh
 
 # 2. Start the scripted mock LLM (drives attach -> profile -> chart -> chart -> text)
 node scripts/mock-llm-scripted.mjs 8471

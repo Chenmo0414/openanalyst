@@ -7,19 +7,19 @@
  * without needing the events around it — which is exactly what the conversation
  * node engine requires of a pure renderer.
  *
- * @module openanalyst/events
+ * @module tukey/events
  */
 
 import { KNOWN_SESSION_EVENT_TYPES } from '@deepseek-ai/dsh-session'
-import type { ChartKind, JsonValue } from '@openanalyst/core'
+import type { ChartKind, JsonValue } from '@tukey/core'
 
 /** Every event type this plugin appends to session logs. */
-export const PLUGIN_EVENT_TYPES = ['openanalyst/attach', 'openanalyst/chart', 'openanalyst/report'] as const
+export const PLUGIN_EVENT_TYPES = ['tukey/attach', 'tukey/chart', 'tukey/report'] as const
 
 /**
  * Register this plugin's event vocabulary with the persistence read path.
  *
- * Without this, a session containing an `openanalyst/chart` event LOADS while
+ * Without this, a session containing an `tukey/chart` event LOADS while
  * the host process lives (in-memory replay) but is REFUSED on the next cold
  * start: the persistence coordinator checks every stored event against
  * `KNOWN_SESSION_EVENT_TYPES` and `Session.append()` exposes no way to mark an
@@ -94,14 +94,14 @@ declare module '@deepseek-ai/dsh-session/types' {
      * @mode emit
      * @param data - the dataset's identity and shape.
      */
-    'openanalyst/attach': AttachEventData
-    'openanalyst/chart': ChartEventData
+    'tukey/attach': AttachEventData
+    'tukey/chart': ChartEventData
     /**
      * Records one generated HTML report, so session surfaces (the workbench
      * panel) can list past reports without a host round trip.
      * @mode emit
      * @param data - where the report landed and what it contains.
      */
-    'openanalyst/report': ReportEventData
+    'tukey/report': ReportEventData
   }
 }

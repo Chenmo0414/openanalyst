@@ -8,7 +8,7 @@
 
 import * as vega from 'vega'
 import * as vegaLite from 'vega-lite'
-import type { JsonValue } from '@openanalyst/core'
+import type { JsonValue } from '@tukey/core'
 
 /** Default raster width: the core emits `width: 'container'`, which only
  * means something inside a browser layout. */

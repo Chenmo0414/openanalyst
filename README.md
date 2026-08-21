@@ -1,8 +1,10 @@
-<p align="center"><img src="docs/assets/logo.svg" alt="OpenAnalyst logo" width="96" height="96" /></p>
-<h1 align="center">OpenAnalyst</h1>
+<p align="center"><img src="docs/assets/logo.svg" alt="Tukey logo" width="96" height="96" /></p>
+<h1 align="center">Tukey</h1>
 
-<p align="center"><b>Turn your coding agent into a data analyst.</b><br/>
-Attach a CSV, get an automatic profile, ask questions in SQL, and see real charts rendered inside the conversation.</p>
+<p align="center"><b>The open-source Julius AI alternative — inside your coding agent.</b><br/>
+Attach a CSV or a Postgres database. Tukey profiles it, answers in SQL, and draws real charts in the conversation.</p>
+
+<p align="center"><sub>Named for John Tukey, who invented exploratory data analysis, the box plot, and the 1.5×IQR outlier rule this profiler runs.</sub></p>
 
 <p align="center">
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat" /></a>
@@ -46,8 +48,8 @@ The same five tools ship on two hosts from one engine:
 
 | Host | Package | Chart delivery |
 |---|---|---|
-| DeepSeek Harness plugin | `openanalyst` | live conversation node (Vega canvas) |
-| MCP server (Claude Code / Codex / Cursor / any MCP client) | `openanalyst-mcp-server` | SVG file + full Vega-Lite spec in `structuredContent` |
+| DeepSeek Harness plugin | `tukey` | live conversation node (Vega canvas) |
+| MCP server (Claude Code / Codex / Cursor / any MCP client) | `tukey-mcp-server` | SVG file + full Vega-Lite spec in `structuredContent` |
 
 Every tool is also reachable from Code Mode as `await tools.data_*(args)`, so
 the agent can chain the whole analysis inside one program instead of spending a
@@ -57,7 +59,7 @@ The **workbench** — a session-header panel listing this session's data
 sources, a chart gallery with click-to-scroll, and generated reports:
 
 <p align="center">
-  <img src="docs/assets/workbench-panel.png" alt="The OpenAnalyst workbench panel open over a dsh conversation: data sources, chart gallery with locate buttons, and the report archive" width="100%" />
+  <img src="docs/assets/workbench-panel.png" alt="The Tukey workbench panel open over a dsh conversation: data sources, chart gallery with locate buttons, and the report archive" width="100%" />
 </p>
 
 More in-conversation chart kinds (same theme, exported from a live session):
@@ -73,20 +75,20 @@ More in-conversation chart kinds (same theme, exported from a live session):
 DeepSeek Harness:
 
 ```bash
-dsh plugin --profile web add openanalyst
+dsh plugin --profile web add tukey
 ```
 
 Claude Code (or any MCP client, via stdio):
 
 ```bash
-claude mcp add openanalyst -- npx -y openanalyst-mcp-server
+claude mcp add tukey -- npx -y tukey-mcp-server
 ```
 
 ## Architecture
 
 Three decisions shape the codebase.
 
-**The engine knows nothing about the harness.** `@openanalyst/core` takes paths
+**The engine knows nothing about the harness.** `@tukey/core` takes paths
 and SQL and returns lossless JSON. It imports no dsh, MCP, or CLI type. That is
 what lets the same analysis ship to Claude Code, Codex, and Cursor through an
 MCP adapter later without a second implementation — the single largest factor
@@ -111,11 +113,11 @@ value that replays byte-for-byte. Vega-Lite was chosen because it satisfies the
 replay rule, not because it is a popular chart library.
 
 ```
-@openanalyst/core            engine, profiling, DB connectors, chart specs  (host-agnostic)
-  ├── @openanalyst/report    Vega-Lite -> SVG (pure JS) + self-contained HTML reports
-  ├── openanalyst            dsh host half: 7 tools + chart event
+@tukey/core            engine, profiling, DB connectors, chart specs  (host-agnostic)
+  ├── @tukey/report    Vega-Lite -> SVG (pure JS) + self-contained HTML reports
+  ├── tukey            dsh host half: 7 tools + chart event
   │     └── ./client         dsh browser half: conversation node + Vega canvas
-  └── openanalyst-mcp-server stdio MCP server: same 7 tools, charts as SVG files
+  └── tukey-mcp-server stdio MCP server: same 7 tools, charts as SVG files
 ```
 
 ## Development

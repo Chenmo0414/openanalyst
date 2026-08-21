@@ -31,7 +31,7 @@ try {
     () => document.body.innerText.includes('heatmap'),
     { timeout: 30_000 },
   )
-  const wanted = process.env.OA_SHOOT_SESSION ?? 'Analyze the sales CSV'
+  const wanted = process.env.TK_SHOOT_SESSION ?? 'Analyze the sales CSV'
   await page.evaluate((title) => {
     // The sidebar row is not a <button>; click the smallest element whose own
     // text carries the session title.
@@ -48,7 +48,7 @@ try {
   // Wait for at least two chart canvases with real dimensions.
   await page.waitForFunction(
     () => {
-      const canvases = [...document.querySelectorAll('figure.openanalyst-chart canvas')]
+      const canvases = [...document.querySelectorAll('figure.tukey-chart canvas')]
       return canvases.length >= 2 && canvases.every((c) => c.width > 0)
     },
     { timeout: 45_000 },
@@ -56,17 +56,17 @@ try {
 
   // Scroll the first chart to the top of the transcript viewport.
   await page.evaluate(() => {
-    const first = document.querySelector('figure.openanalyst-chart')
+    const first = document.querySelector('figure.tukey-chart')
     first?.scrollIntoView({ block: 'start' })
     window.scrollBy(0, -100)
   })
   await new Promise((resolve) => setTimeout(resolve, 1200))
 
   // Optionally open the workbench panel so the capture shows it.
-  if (process.env.OA_SHOOT_WORKBENCH === '1') {
+  if (process.env.TK_SHOOT_WORKBENCH === '1') {
     await page.evaluate(() => {
       const btn = [...document.querySelectorAll("button")].find(
-        (b) => b.getAttribute("title") === "OpenAnalyst workbench",
+        (b) => b.getAttribute("title") === "Tukey workbench",
       )
       if (btn instanceof HTMLElement) btn.click()
     })

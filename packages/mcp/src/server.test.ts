@@ -30,7 +30,7 @@ async function call(name: string, args: Record<string, unknown>): Promise<ToolOu
 }
 
 beforeAll(async () => {
-  chartDir = mkdtempSync(join(tmpdir(), 'openanalyst-mcp-'))
+  chartDir = mkdtempSync(join(tmpdir(), 'tukey-mcp-'))
   const server = createServer({ chartDir })
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
   client = new Client({ name: 'test-client', version: '0.0.0' })
@@ -115,7 +115,7 @@ describe('data_attach_db and data_report', () => {
   it('attaches a SQLite file read-only and lists its tables', async () => {
     // Author a fixture through the core's own trusted channel (no sqlite3 CLI
     // and no direct duckdb dependency needed).
-    const { AnalystEngine } = await import('@openanalyst/core')
+    const { AnalystEngine } = await import('@tukey/core')
     const dbPath = join(chartDir, 'fixture.sqlite').replaceAll('\\', '/')
     const author = await AnalystEngine.create()
     await author.execInternal('INSTALL sqlite; LOAD sqlite')

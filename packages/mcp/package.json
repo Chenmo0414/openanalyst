@@ -1,11 +1,11 @@
 {
-  "name": "openanalyst-mcp-server",
+  "name": "tukey-mcp-server",
   "version": "0.1.0",
-  "description": "MCP server for OpenAnalyst: attach CSV/Parquet/JSON/XLSX, auto-profile, run read-only SQL, and render charts — for Claude Code, Codex, Cursor and any MCP client.",
+  "description": "MCP server for Tukey: attach CSV/Parquet/JSON/XLSX, auto-profile, run read-only SQL, and render charts — for Claude Code, Codex, Cursor and any MCP client.",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "openanalyst-mcp": "./dist/index.js"
+    "tukey-mcp": "./dist/index.js"
   },
   "main": "./dist/index.js",
   "files": [
@@ -30,9 +30,9 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
-    "@openanalyst/core": "workspace:^",
+    "@tukey/core": "workspace:^",
     "zod": "^3.24.0",
-    "@openanalyst/report": "workspace:^"
+    "@tukey/report": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
@@ -41,12 +41,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Chenmo0414/openanalyst.git",
+    "url": "git+https://github.com/Chenmo0414/tukey.git",
     "directory": "packages/mcp"
   },
-  "homepage": "https://github.com/Chenmo0414/openanalyst",
+  "homepage": "https://github.com/Chenmo0414/tukey",
   "bugs": {
-    "url": "https://github.com/Chenmo0414/openanalyst/issues"
+    "url": "https://github.com/Chenmo0414/tukey/issues"
   },
   "author": "Chenmo0414",
   "publishConfig": {

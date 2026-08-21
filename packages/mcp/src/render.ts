@@ -1,13 +1,13 @@
 /**
- * File-emitting wrapper over `@openanalyst/report`'s pure SVG renderer: the
+ * File-emitting wrapper over `@tukey/report`'s pure SVG renderer: the
  * MCP transport has no inline-image surface worth relying on, so charts land
  * on disk and tools return the path.
  */
 
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
-import { chartToSvg } from '@openanalyst/report'
-import type { JsonValue } from '@openanalyst/core'
+import { chartToSvg } from '@tukey/report'
+import type { JsonValue } from '@tukey/core'
 
 export interface RenderedChart {
   readonly svgPath: string
@@ -17,7 +17,7 @@ export interface RenderedChart {
 /**
  * Render one self-contained Vega-Lite spec to an SVG file.
  *
- * @param spec - the spec produced by `@openanalyst/core` buildChart, data inlined.
+ * @param spec - the spec produced by `@tukey/core` buildChart, data inlined.
  * @param outDir - directory the SVG is written into (created when missing).
  * @param baseName - filename stem; sanitized, `.svg` appended.
  */

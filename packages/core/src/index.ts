@@ -1,5 +1,5 @@
 /**
- * @openanalyst/core — dataset profiling, read-only SQL, and Vega-Lite charts
+ * @tukey/core — dataset profiling, read-only SQL, and Vega-Lite charts
  * over DuckDB.
  *
  * Host-agnostic by construction: nothing here imports a DeepSeek Harness, MCP,

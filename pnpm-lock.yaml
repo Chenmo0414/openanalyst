@@ -8,7 +8,7 @@ importers:
 
   .:
     dependencies:
-      openanalyst:
+      tukey:
         specifier: workspace:*
         version: link:packages/dsh
     devDependencies:
@@ -46,10 +46,10 @@ importers:
 
   packages/dsh:
     dependencies:
-      '@openanalyst/core':
+      '@tukey/core':
         specifier: workspace:^
         version: link:../core
-      '@openanalyst/report':
+      '@tukey/report':
         specifier: workspace:^
         version: link:../report
     devDependencies:
@@ -95,10 +95,10 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.30.0
         version: 1.30.0(zod@3.25.76)
-      '@openanalyst/core':
+      '@tukey/core':
         specifier: workspace:^
         version: link:../core
-      '@openanalyst/report':
+      '@tukey/report':
         specifier: workspace:^
         version: link:../report
       zod:
@@ -117,7 +117,7 @@ importers:
 
   packages/report:
     dependencies:
-      '@openanalyst/core':
+      '@tukey/core':
         specifier: workspace:^
         version: link:../core
       vega:

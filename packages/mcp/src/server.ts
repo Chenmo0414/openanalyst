@@ -1,9 +1,9 @@
 /**
- * OpenAnalyst MCP server: the same five data tools the DeepSeek Harness plugin
+ * Tukey MCP server: the same five data tools the DeepSeek Harness plugin
  * exposes, for every MCP client — Claude Code, Codex, Cursor, and anything
  * else that speaks the protocol.
  *
- * The analysis logic lives entirely in `@openanalyst/core`; this file only
+ * The analysis logic lives entirely in `@tukey/core`; this file only
  * translates between MCP shapes and the core's lossless-JSON domain types.
  * Tool names match the dsh plugin exactly, so prompts and docs transfer
  * between hosts unchanged.
@@ -30,8 +30,8 @@ import {
   type ChartKind,
   type DatabaseKind,
   type JsonValue,
-} from '@openanalyst/core'
-import { buildHtmlReport } from '@openanalyst/report'
+} from '@tukey/core'
+import { buildHtmlReport } from '@tukey/report'
 import { renderChartSvg } from './render.js'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { resolve as resolvePath } from 'node:path'
@@ -40,7 +40,7 @@ const CHART_KINDS = ['bar', 'line', 'scatter', 'histogram', 'area', 'heatmap', '
 const AGGREGATES = ['sum', 'avg', 'count', 'min', 'max', 'none'] as const
 
 /** Where rendered SVGs land unless the client overrides per call. */
-const DEFAULT_CHART_DIR = join(homedir(), '.openanalyst', 'charts')
+const DEFAULT_CHART_DIR = join(homedir(), '.tukey', 'charts')
 
 export interface ServerOptions {
   /** Override the chart output directory (tests use a temp dir). */
@@ -55,7 +55,7 @@ export function createServer(options: ServerOptions = {}): McpServer {
   const chartDir = options.chartDir ?? DEFAULT_CHART_DIR
 
   const server = new McpServer({
-    name: 'openanalyst-mcp-server',
+    name: 'tukey-mcp-server',
     version: '0.1.0',
   })
 

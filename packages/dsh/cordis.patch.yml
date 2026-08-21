@@ -2,5 +2,5 @@
 # The client half is discovered from the package's `dsh.client` declaration,
 # so only the host plugin row belongs here.
 - insert:
-    - id: openanalyst
-      name: openanalyst
+    - id: tukey
+      name: tukey
