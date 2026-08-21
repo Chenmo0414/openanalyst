@@ -31,7 +31,9 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "esbuild": "^0.24.2",
     "typescript": "^5.7.2",
+    "vega-embed": "^6.29.0",
     "vitest": "^3.0.5"
   },
   "repository": {

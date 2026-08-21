@@ -133,9 +133,15 @@ importers:
       '@types/node':
         specifier: ^22.10.0
         version: 22.20.1
+      esbuild:
+        specifier: ^0.24.2
+        version: 0.24.2
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
+      vega-embed:
+        specifier: ^6.29.0
+        version: 6.29.0(vega-lite@6.4.3(vega@6.4.0))(vega@6.4.0)
       vitest:
         specifier: ^3.0.5
         version: 3.2.7(@types/node@22.20.1)(yaml@2.9.0)
